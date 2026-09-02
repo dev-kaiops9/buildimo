@@ -1,0 +1,1031 @@
+/* =========================================================================
+   SERAH TERIMA DINAS — Design tokens (v2: "Fresh Mint")
+   Konsep: papan informasi stasiun yang dibuat terasa ringan & modern —
+   kartu putih mengambang di atas lanskap blob mint lembut, tombol & input
+   pil, tipografi rounded-geometric. Data teknis (NIPP, tanggal, nama file)
+   tetap pakai mono supaya tetap presisi & mudah dibaca di lapangan.
+   Tipografi: Plus Jakarta Sans (display & body) / IBM Plex Mono (data).
+   ========================================================================= */
+
+:root {
+  --mint-50:  #f1f0fb;
+  --mint-100: #e5e3f7;
+  --mint-200: #c9c6ee;
+  --mint-500: #5B58CA;
+  --mint-600: #4a47b5;
+  --mint-700: #3d3a8f;
+
+  --emerald-900: #1b1f3b;
+  --ink-900: #1b1f3b;
+  --ink-600: #6b7280;
+  --ink-300: #b6bcd6;
+
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+
+  --rail-green: var(--mint-500);
+  --rail-green-dark: var(--mint-700);
+  --rail-green-tint: var(--mint-100);
+
+  --signal-amber: #eda63e;
+  --signal-amber-tint: #fdf1df;
+
+  --signal-red: #ef4444;
+  --signal-red-tint: #feecec;
+
+  --navy-950: var(--emerald-900); /* alias dipertahankan agar kompatibel */
+  --navy-800: var(--emerald-900);
+  --navy-700: #262c52;
+  --steel-600: var(--ink-600);
+  --steel-300: var(--ink-300);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(27, 31, 59, 0.06);
+  --shadow-md: 0 6px 18px rgba(27, 31, 59, 0.08);
+  --shadow-lg: 0 16px 40px rgba(27, 31, 59, 0.14);
+
+  --font-display: "Plus Jakarta Sans", "IBM Plex Sans", sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink-900);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+a { color: inherit; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--mint-500);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------
+   Top bar
+   --------------------------------------------------------------------- */
+
+.topbar {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  color: var(--ink-900);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--mint-500);
+  box-shadow: 0 4px 14px rgba(67, 97, 238, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  flex: none;
+}
+
+.topbar__title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--emerald-900);
+}
+
+.topbar__subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.topbar__clock {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-600);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------
+   Page shell — stepper rail (kiri) + panel form (kanan)
+   --------------------------------------------------------------------- */
+
+.shell {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 32px 24px 90px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    padding: 18px 14px 64px;
+    gap: 16px;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* Sidebar menu utama: "Isi Serah Terima" <-> "Cek PDF Tersimpan" */
+
+.sidebar {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--mint-500);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+}
+
+.sidebar__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 6px 12px 10px;
+}
+
+@media (max-width: 860px) { .sidebar__eyebrow { display: none; } }
+
+.sidebar__item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 12px 14px;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+  white-space: nowrap;
+}
+
+.sidebar__item-icon { font-size: 15px; line-height: 1; }
+
+.sidebar__item:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+.sidebar__item.is-active {
+  color: var(--mint-600);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Panel "Cek PDF Tersimpan" */
+
+.field-row--search {
+  align-items: end;
+}
+
+.field-row--search .btn { height: 46px; }
+
+.cekpdf-status {
+  margin-top: 14px;
+  padding: 13px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.cekpdf-status--loading { background: var(--bg); color: var(--ink-600); }
+.cekpdf-status--empty { background: var(--signal-amber-tint); color: #8a5c14; }
+.cekpdf-status--error { background: var(--signal-red-tint); color: var(--signal-red); }
+
+.cekpdf-result { margin-top: 20px; }
+
+.cekpdf-item {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  margin-bottom: 8px;
+}
+
+.cekpdf-result__caption {
+  font-size: 13px;
+  color: var(--ink-600);
+  margin-bottom: 12px;
+}
+
+.cekpdf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cekpdf-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.cekpdf-row:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.cekpdf-row__tanggal {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--emerald-900);
+}
+
+.cekpdf-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.badge--dinas {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--mint-100);
+  color: var(--mint-700);
+}
+
+.cekpdf-row__jenis {
+  font-size: 12.5px;
+  color: var(--ink-600);
+}
+
+.cekpdf-row__nolink {
+  font-size: 12.5px;
+  color: var(--ink-300);
+  font-style: italic;
+}
+
+.btn--sm {
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .cekpdf-row { flex-direction: column; align-items: flex-start; }
+}
+
+/* Stepper — bar horizontal di atas konten, kartu putih indikator pil mint */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  color: var(--ink-900);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 860px) {
+  .stepper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px;
+  }
+  .stepper::-webkit-scrollbar { display: none; }
+}
+
+.step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-pill);
+  color: var(--ink-600);
+  flex: 1;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+@media (max-width: 860px) {
+  .step {
+    flex: none;
+    min-width: 150px;
+  }
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.step__num {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--ink-600);
+  z-index: 1;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.step__label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .step__label { display: none; }
+}
+
+.step.is-active {
+  background: var(--mint-100);
+  color: var(--emerald-900);
+}
+.step.is-active .step__num {
+  border-color: var(--mint-500);
+  background: var(--mint-500);
+  color: #fff;
+}
+
+.step.is-done .step__num {
+  border-color: var(--mint-500);
+  background: var(--surface);
+  color: var(--mint-600);
+}
+.step.is-done .step__label { color: var(--ink-300); }
+.step.is-done .step__num::after {
+  content: "✓";
+}
+.step.is-done .step__num {
+  font-size: 0;
+}
+.step.is-done .step__num::after {
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------------
+   Panel / card
+   --------------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+}
+
+@media (max-width: 860px) { .panel { padding: 20px; border-radius: var(--radius-md); } }
+
+.panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.panel__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mint-700);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.panel__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--emerald-900);
+}
+
+.panel__hint {
+  color: var(--ink-600);
+  font-size: 13.5px;
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+/* ---------------------------------------------------------------------
+   Form elements
+   --------------------------------------------------------------------- */
+
+.field {
+  margin-bottom: 18px;
+}
+
+.field__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: var(--emerald-900);
+}
+
+.field__label .req { color: var(--signal-red); }
+
+.field__control {
+  position: relative;
+}
+
+.input,
+.select,
+input[type="date"] {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14.5px;
+  font-family: var(--font-body);
+  background: var(--surface);
+  color: var(--ink-900);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.input::placeholder { color: var(--ink-300); }
+
+.input:focus,
+.select:focus,
+input[type="date"]:focus {
+  border-color: var(--mint-500);
+  box-shadow: 0 0 0 4px var(--mint-100);
+  outline: none;
+}
+
+.input.is-mono { font-family: var(--font-mono); letter-spacing: 0.02em; }
+
+.input.is-invalid,
+.select.is-invalid {
+  border-color: var(--signal-red);
+  box-shadow: 0 0 0 4px var(--signal-red-tint);
+}
+
+.field__error {
+  color: var(--signal-red);
+  font-size: 12.5px;
+  margin-top: 5px;
+  display: none;
+}
+.field.has-error .field__error { display: block; }
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-600) 50%),
+    linear-gradient(135deg, var(--ink-600) 50%, transparent 50%);
+  background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 560px) {
+  .field-row { grid-template-columns: 1fr; }
+}
+
+/* --- NIPP status badge (signature element) ------------------- */
+
+.nipp-status {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px 7px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.nipp-status.is-visible { opacity: 1; transform: translateY(0); }
+
+.nipp-status .flap {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--emerald-900);
+  color: #fff;
+  animation: flap-in 0.35s var(--ease);
+}
+
+@keyframes flap-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.nipp-status--found { background: var(--mint-100); color: var(--mint-700); }
+.nipp-status--found .flap { background: var(--mint-500); }
+
+.nipp-status--notfound { background: var(--signal-amber-tint); color: #8a5c14; }
+.nipp-status--notfound .flap { background: var(--signal-amber); }
+
+.nipp-status--loading { background: var(--bg); color: var(--ink-600); }
+.nipp-status--loading .flap { background: var(--ink-600); }
+
+.spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------------------
+   Upload dropzone
+   --------------------------------------------------------------------- */
+
+.dropzone {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: 26px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.dropzone:hover,
+.dropzone.is-dragover {
+  border-color: var(--mint-500);
+  background: var(--mint-100);
+}
+.dropzone.is-invalid { border-color: var(--signal-red); }
+
+.dropzone__icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mint-600);
+  font-size: 17px;
+}
+
+.dropzone__text { font-size: 13.5px; color: var(--emerald-900); font-weight: 500; }
+.dropzone__hint { font-size: 12px; color: var(--ink-600); margin-top: 3px; }
+
+.thumb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.thumb {
+  position: relative;
+  width: 78px;
+  height: 78px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: rgba(10, 61, 44, 0.8);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------------------------------------------------------------
+   Buttons — pil, sesuai referensi
+   --------------------------------------------------------------------- */
+
+.btn-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 13px 24px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease), background 0.15s var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn--primary {
+  background: var(--mint-500);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.28);
+}
+.btn--primary:hover { background: var(--mint-600); }
+.btn--primary:disabled {
+  background: var(--ink-300);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn--ghost {
+  background: var(--surface);
+  color: var(--emerald-900);
+  border-color: var(--border);
+}
+.btn--ghost:hover { background: var(--mint-50); border-color: var(--mint-500); }
+
+.btn--danger-text {
+  background: transparent;
+  color: var(--signal-red);
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------
+   Preview document
+   --------------------------------------------------------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 61, 44, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow-y: auto;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease);
+}
+.overlay.is-open { opacity: 1; pointer-events: auto; }
+
+.doc {
+  background: var(--surface);
+  width: 100%;
+  max-width: 900px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  transform: translateY(10px);
+  transition: transform 0.2s var(--ease);
+}
+.overlay.is-open .doc { transform: translateY(0); }
+
+.doc__head {
+  background: var(--emerald-900);
+  color: #fff;
+  padding: 24px 28px;
+}
+.doc__head .panel__eyebrow { color: var(--mint-200); }
+.doc__head h2 { font-size: 19px; }
+
+.doc__body { padding: 26px 28px; }
+
+/* Tabel preview — struktur & proporsi kolomnya sama persis dengan
+   tabel di PDF final (lihat CONFIG.getTableColumns / pdf.js). */
+.doc__table-wrap {
+  border: 1px solid var(--emerald-900);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.pv-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.pv-table th,
+.pv-table td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+  color: var(--ink-900);
+  word-break: break-word;
+}
+.pv-table thead tr { height: 36px; }
+.pv-table tbody tr { height: 300px; } /* tinggi eksplisit (bukan %) supaya foto di dalamnya pasti tampil di semua browser */
+.pv-table thead th {
+  background: var(--mint-50);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--emerald-900);
+}
+/* Sel "LIBUR" (Kegiatan & Dokumentasi Kegiatan) saat Dinas = LIBUR */
+.pv-table__libur { font-weight: 700; color: var(--signal-red); }
+
+.pv-table__photo-cell { padding: 4px; height: 300px; background: #fff; }
+.pv-table__photo-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* foto utuh, tidak dipotong — samakan dengan logic
+                           "contain" di pdf.js (addImage dgn rasio dijaga,
+                           dipusatkan, sisa ruang jadi spasi putih) supaya
+                           preview benar-benar identik dengan hasil PDF */
+  border-radius: 6px;
+}
+
+.doc__foot {
+  padding: 20px 28px 26px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------------------------------------------------------------------
+   Toast notifications
+   --------------------------------------------------------------------- */
+
+.toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 80;
+}
+@media (max-width: 520px) {
+  .toast-stack { left: 14px; right: 14px; bottom: 14px; }
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 360px;
+  background: var(--surface);
+  color: var(--ink-900);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 13.5px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: toast-in 0.25s var(--ease);
+  border-left: 4px solid var(--mint-500);
+}
+.toast--error { border-left-color: var(--signal-red); }
+.toast--warn { border-left-color: var(--signal-amber); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------------------------------------------------------------
+   Loading overlay (saat proses simpan/generate PDF)
+   --------------------------------------------------------------------- */
+
+.busy-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 61, 44, 0.78);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease);
+}
+.busy-overlay.is-open { opacity: 1; pointer-events: auto; }
+.busy-overlay .spinner {
+  width: 34px;
+  height: 34px;
+  border-width: 3px;
+}
+.busy-overlay__text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.busy-overlay__progress {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.busy-overlay__progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.busy-overlay__progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  transition: width 0.25s var(--ease);
+}
+.busy-overlay__progress-pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+
+.busy-overlay__warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  text-align: center;
+  background: rgba(237, 166, 62, 0.16);
+  border: 1px solid rgba(237, 166, 62, 0.55);
+  color: #fdf1df;
+  font-size: 11.5px;
+  line-height: 1.4;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+}
+.busy-overlay__warning i {
+  color: var(--signal-amber);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------
+   Utility
+   --------------------------------------------------------------------- */
+
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* ---------------------------------------------------------------------
+   Identitas Aktif (banner data user login — menggantikan step "Data
+   Pegawai" lama; datanya diambil dari sesi Login di dashboard IMO Tools)
+   --------------------------------------------------------------------- */
+
+.identity-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 16px;
+}
+.identity-banner__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.identity-banner__label {
+  color: var(--muted, #94a3b8);
+  font-weight: 500;
+}
+.identity-banner__value {
+  font-weight: 700;
+}
+.identity-banner__value.is-mono {
+  font-family: var(--font-mono);
+}

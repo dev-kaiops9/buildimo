@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PDF to A4 — IMO Tools</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .dropzone.drag { border-color: #5B58CA; background: #f1f0fb; }
+  .option-card.active { border-color: #5B58CA; background: #f1f0fb; box-shadow: 0 0 0 2px rgba(91,88,202,0.25); }
+  #statusPill.processing { background: #fef3c7; color: #92400e; }
+  #statusPill.done { background: #d1fae5; color: #065f46; }
+  #statusPill.error { background: #fee2e2; color: #991b1b; }
+  #previewCanvas { max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; display: none; }
+  #previewCanvas.show { display: block; }
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+<!-- Header & tombol "kembali" halaman ini sengaja dihilangkan: menu ini dimuat
+     di dalam shell dashboard (IMO Tools) yang sidebar-nya selalu terlihat.
+     Untuk berpindah menu, cukup pilih menu lain di sidebar. -->
+
+<main class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">PDF to A4</h1>
+    <p class="text-sm text-slate-500 mt-1">Gabung 2 halaman PDF jadi satu lembar A4.</p>
+  </div>
+
+
+  <!-- ============ UPLOAD ============ -->
+  <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+    <h2 class="text-lg font-bold text-slate-800">Upload PDF</h2>
+    <p class="text-sm text-slate-500 -mt-2">Kedua halaman PDF akan dipangkas dari spasi kosong, ditumpuk atas–bawah, lalu disusun ke satu lembar A4.</p>
+
+    <div id="drop" class="dropzone border-2 border-dashed border-slate-300 rounded-2xl py-10 text-center cursor-pointer transition" tabindex="0">
+      <div class="text-3xl text-slate-400 mb-2"><i class="fa-solid fa-file-pdf"></i></div>
+      <div class="text-sm font-medium text-slate-600">Tarik &amp; lepas file PDF di sini, atau klik untuk pilih</div>
+      <div class="text-xs text-slate-400 mt-1" id="fileName">Hanya PDF dengan tepat 2 halaman</div>
+    </div>
+    <input type="file" id="fileInput" accept="application/pdf" class="hidden" />
+  </section>
+
+  <!-- ============ DPI OPTIONS ============ -->
+  <section class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold text-slate-800">Resolusi Keluaran</h2>
+      <span id="dpiBadge" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">300 DPI</span>
+    </div>
+    <div id="dpiOptions" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <button type="button" class="option-card border border-slate-200 rounded-2xl p-3 flex items-center gap-3 text-left hover:border-indigo-300 transition" data-dpi="150">
+        <span class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">S</span>
+        <span>
+          <span class="block text-sm font-bold text-slate-800">Standar</span>
+          <span class="block text-xs text-slate-400">150 DPI · proses cepat</span>
+        </span>
+      </button>
+      <button type="button" class="option-card active border border-slate-200 rounded-2xl p-3 flex items-center gap-3 text-left hover:border-indigo-300 transition" data-dpi="300">
+        <span class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">T</span>
+        <span>
+          <span class="block text-sm font-bold text-slate-800">Tinggi</span>
+          <span class="block text-xs text-slate-400">300 DPI · teks tetap tajam</span>
+        </span>
+      </button>
+      <button type="button" class="option-card border border-slate-200 rounded-2xl p-3 flex items-center gap-3 text-left hover:border-indigo-300 transition" data-dpi="450">
+        <span class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">ST</span>
+        <span>
+          <span class="block text-sm font-bold text-slate-800">Sangat Tinggi</span>
+          <span class="block text-xs text-slate-400">450 DPI · detail maksimal</span>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ STATUS ============ -->
+  <section id="statusSection" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4" style="display:none">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold text-slate-800">Status</h2>
+      <span id="statusPill" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-600">
+        <span id="statusLabel">Menunggu berkas</span>
+      </span>
+    </div>
+    <div id="statusMsg" class="text-sm text-slate-500"></div>
+  </section>
+
+  <!-- ============ HASIL ============ -->
+  <section id="resultSection" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+    <h2 class="text-lg font-bold text-slate-800">Pratinjau &amp; Hasil</h2>
+
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-center min-h-[160px]">
+      <span class="text-sm text-slate-400" id="previewEmpty">Pratinjau akan muncul di sini.</span>
+      <canvas id="previewCanvas"></canvas>
+    </div>
+
+    <div id="metaTable" class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm"></div>
+
+    <button type="button" id="downloadBtn" disabled class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition">
+      <i class="fa-solid fa-download mr-1.5"></i> Unduh JPG
+    </button>
+  </section>
+
+  <p class="text-xs text-slate-400 px-1">Semua proses berjalan di browser Anda — file PDF tidak diunggah ke server mana pun. Orientasi (potret/lanskap) ditentukan otomatis dari proporsi hasil gabungan.</p>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  document.getElementById('drop').addEventListener('click', () => document.getElementById('fileInput').click());
+</script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Serah Terima Dinas</title>
+<meta name="description" content="Aplikasi pencatatan serah terima dinas stasiun — form, foto, PDF, tersimpan otomatis ke Google Sheet & Drive." />
+
+<!-- Tailwind CSS CDN (dipakai untuk topbar & chrome, senada dengan IMO Tools Hub) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="assets/css/style.css" />
+
+<!-- ==================== MODE SWITCHER (Stasiun Kedudukan / Stasiun Tempat
+     Wakilan) — style ditulis di sini (bukan di assets/css/style.css) supaya
+     tidak perlu menyentuh file CSS terpisah. Tampilan "glass shadow":
+     latar semi-transparan + blur + shadow lembut. ==================== -->
+<style>
+  .mode-switcher {
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    margin-bottom: 20px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow:
+      0 8px 28px rgba(79, 70, 229, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+  .mode-switcher__tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 13px;
+    background: transparent;
+    color: #64748b;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .mode-switcher__tab:hover:not(.is-active) {
+    background: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+  }
+  .mode-switcher__tab.is-active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+  }
+  .mode-switcher__tab:active { transform: scale(0.98); }
+  .mode-switcher__badge {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+  .mode-switcher__tab:not(.is-active) .mode-switcher__badge {
+    background: rgba(148, 163, 184, 0.18);
+    color: #64748b;
+  }
+
+  .mode-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    padding: 72px 24px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px dashed rgba(99, 102, 241, 0.35);
+    box-shadow:
+      0 8px 28px rgba(79, 70, 229, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    color: #475569;
+  }
+  .mode-placeholder__icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+    color: #6366f1;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .mode-placeholder__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #334155;
+  }
+  .mode-placeholder__text {
+    font-size: 13px;
+    color: #94a3b8;
+    max-width: 320px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header & tombol "kembali" halaman ini sengaja dihilangkan: menu ini dimuat
+     di dalam shell dashboard (IMO Tools) yang sidebar-nya selalu terlihat.
+     Untuk berpindah menu, cukup pilih menu lain di sidebar. -->
+
+<div class="shell">
+
+  <!-- ==================== KONTEN ====================
+       Menu "Cek PDF Tersimpan" sudah dipindah ke widget "PDF Tersimpan" di
+       sidebar kanan dashboard IMO Tools (index.html satu level di atas),
+       yang muncul otomatis setelah login — jadi sidebar internal & tab
+       menu di halaman ini tidak diperlukan lagi. -->
+  <div class="content">
+
+  <!-- ==================== IDENTITAS AKTIF (dari sesi Login IMO Tools) ====================
+       Menggantikan form "Data Pegawai" (langkah 1 lama): Nama/NIPP/Jabatan/Stasiun
+       sekarang diambil otomatis dari user yang sedang login (localStorage "imoUser",
+       diisi oleh modal Login di index.html dashboard), bukan diinput ulang di sini.
+       Diletakkan di luar wrapper mode (di atas switcher) supaya tetap tampil sama
+       di kedua mode — Stasiun Kedudukan maupun Stasiun Tempat Wakilan. -->
+  <div class="panel identity-banner" id="identityBanner">
+    <div class="identity-banner__row">
+      <span class="identity-banner__label">Nama</span>
+      <strong class="identity-banner__value" id="idNama">-</strong>
+    </div>
+    <div class="identity-banner__row">
+      <span class="identity-banner__label">NIPP</span>
+      <strong class="identity-banner__value is-mono" id="idNipp">-</strong>
+    </div>
+    <div class="identity-banner__row">
+      <span class="identity-banner__label">Jabatan</span>
+      <strong class="identity-banner__value" id="idJabatan">-</strong>
+    </div>
+    <div class="identity-banner__row">
+      <span class="identity-banner__label">Stasiun</span>
+      <strong class="identity-banner__value" id="idStasiun">-</strong>
+    </div>
+  </div>
+
+  <!-- ==================== BELUM LOGIN ==================== -->
+  <div class="panel hidden" id="notLoggedInPanel">
+    <p class="panel__title">Anda belum login</p>
+    <p class="panel__hint">Silakan login lebih dulu lewat menu utama IMO Tools — Nama, NIPP, Jabatan, dan Stasiun akan terisi otomatis dari data akun Anda.</p>
+    <div class="btn-row">
+      <span></span>
+      <button type="button" class="btn btn--primary" id="btnGoLogin">Buka Login</button>
+    </div>
+  </div>
+
+  <!-- ==================== MODE SWITCHER ====================
+       Dua mode form: "Stasiun Kedudukan" (form yang sudah ada, aktif
+       secara default) dan "Stasiun Tempat Wakilan" (masih placeholder,
+       belum ada form-nya). Pilihan mode murni tampilan sisi client —
+       tidak memanggil backend maupun mengubah data yang sudah ada. -->
+  <div class="mode-switcher" id="modeSwitcher" role="tablist" aria-label="Mode form serah terima">
+    <button type="button" class="mode-switcher__tab is-active" id="modeTabKedudukan" data-mode="kedudukan" role="tab" aria-selected="true">
+      Stasiun Kedudukan
+    </button>
+    <button type="button" class="mode-switcher__tab" id="modeTabWakilan" data-mode="wakilan" role="tab" aria-selected="false">
+      Stasiun Tempat Wakilan
+      <span class="mode-switcher__badge">SEGERA</span>
+    </button>
+  </div>
+
+  <!-- ==================== MODE: STASIUN KEDUDUKAN ==================== -->
+  <div id="modeContentKedudukan">
+
+  <!-- ==================== STEPPER (HORIZONTAL) ==================== -->
+  <nav class="stepper" id="stepperNav" aria-label="Tahapan pengisian">
+    <div class="step is-active" data-step="1">
+      <div class="step__num">1</div>
+      <div class="step__label">Data Dinas</div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="step__num">2</div>
+      <div class="step__label">Unggah Foto</div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="step__num">3</div>
+      <div class="step__label">Preview &amp; Simpan</div>
+    </div>
+  </nav>
+
+  <!-- ==================== MAIN FORM ==================== -->
+  <main id="mainFormArea">
+
+    <!-- ---------- STEP 1: DATA DINAS ---------- -->
+    <section class="panel step-panel" data-panel="1">
+      <div class="panel__header">
+        <div>
+          <span class="panel__eyebrow">Langkah 1 dari 3</span>
+          <h2 class="panel__title">Data Dinas</h2>
+        </div>
+      </div>
+      <p class="panel__hint">Tentukan jadwal dan jenis serah terima yang dilakukan.</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field__label" for="dinas">Dinas <span class="req">*</span></label>
+          <select id="dinas" class="select">
+            <option value="">Pilih dinas</option>
+          </select>
+          <div class="field__error" id="err-dinas">Dinas wajib dipilih.</div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="tanggal">Tanggal <span class="req">*</span></label>
+          <input type="date" id="tanggal" class="input" />
+          <div class="field__error" id="err-tanggal">Tanggal wajib diisi.</div>
+        </div>
+      </div>
+
+      <!-- Muncul hanya saat Dinas = "Lainnya" -->
+      <div class="field hidden" id="fieldDinasLainnya">
+        <label class="field__label" for="dinasLainnya">Isi Dinas/Kegiatan <span class="req">*</span></label>
+        <input type="text" id="dinasLainnya" class="input" placeholder="Wakilan PPKA Stasiun ABC/Sertifikasi/CUTI" />
+        <div class="field__error" id="err-dinasLainnya">Isi Dinas/Kegiatan wajib diisi.</div>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="jenisSerahTerima">Jenis Serah Terima <span class="req">*</span></label>
+        <select id="jenisSerahTerima" class="select">
+          <option value="">Pilih jenis serah terima</option>
+        </select>
+        <div class="field__error" id="err-jenisSerahTerima">Jenis serah terima wajib dipilih.</div>
+      </div>
+
+      <div class="btn-row">
+        <span></span>
+        <button type="button" class="btn btn--primary" data-next="2">Lanjut →</button>
+      </div>
+    </section>
+
+    <!-- ---------- STEP 2: UPLOAD FOTO ---------- -->
+    <section class="panel step-panel hidden" data-panel="2">
+      <div class="panel__header">
+        <div>
+          <span class="panel__eyebrow">Langkah 2 dari 3</span>
+          <h2 class="panel__title">Unggah Foto</h2>
+        </div>
+      </div>
+      <p class="panel__hint">Unggah bukti serah terima dan dokumentasi kegiatan.</p>
+
+      <div class="field" id="fieldFotoSerahTerima">
+        <label class="field__label" id="labelFotoSerahTerima">Foto Serah Terima <span class="req">*</span></label>
+        <div class="dropzone" id="dzSerahTerima" tabindex="0" role="button" aria-describedby="dzSerahTerimaHint">
+          <div class="dropzone__icon">↑</div>
+          <div class="dropzone__text">Tarik &amp; lepas foto di sini, atau klik untuk pilih</div>
+          <div class="dropzone__hint" id="dzSerahTerimaHint">JPG / PNG, maks. 8MB</div>
+        </div>
+        <input type="file" id="fileSerahTerima" accept="image/*" class="hidden" />
+        <div class="thumb-row" id="thumbSerahTerima"></div>
+        <div class="field__error" id="err-fotoSerahTerima">Foto serah terima wajib diunggah.</div>
+      </div>
+
+      <div class="field" id="fieldFotoDokumentasi">
+        <label class="field__label">Foto Dokumentasi Kegiatan <span class="req">*</span></label>
+        <div class="dropzone" id="dzDokumentasi" tabindex="0" role="button">
+          <div class="dropzone__icon">↑</div>
+          <div class="dropzone__text">Tarik &amp; lepas foto di sini, atau klik untuk pilih</div>
+          <div class="dropzone__hint">JPG / PNG, maks. 8MB</div>
+        </div>
+        <input type="file" id="fileDokumentasi" accept="image/*" class="hidden" />
+        <div class="thumb-row" id="thumbDokumentasi"></div>
+        <div class="field__error" id="err-fotoDokumentasi">Foto dokumentasi wajib diunggah.</div>
+      </div>
+
+      <!-- Muncul hanya saat Dinas = "LIBUR" (tidak ada foto sama sekali) -->
+      <p class="panel__hint hidden" id="hintLiburNoUpload">Dinas LIBUR — tidak perlu unggah foto. Langsung lanjut ke Preview.</p>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn--ghost" data-back="1">← Kembali</button>
+        <button type="button" class="btn btn--primary" id="btnGoPreview">Lihat Preview →</button>
+      </div>
+    </section>
+
+    <!-- ---------- STEP 3: RINGKASAN (ditampilkan setelah simpan) ---------- -->
+    <section class="panel step-panel hidden" data-panel="3">
+      <div class="panel__header">
+        <div>
+          <span class="panel__eyebrow">Langkah 3 dari 3</span>
+          <h2 class="panel__title" id="resultTitle">Tersimpan</h2>
+        </div>
+      </div>
+      <p class="panel__hint" id="resultText">Data serah terima berhasil disimpan.</p>
+      <div class="btn-row">
+        <span></span>
+        <button type="button" class="btn btn--primary" id="btnReset">+ Buat Serah Terima Baru</button>
+      </div>
+    </section>
+
+  </main>
+
+  </div>
+  <!-- /modeContentKedudukan -->
+
+  <!-- ==================== MODE: STASIUN TEMPAT WAKILAN ====================
+       Form untuk mode ini belum dibuat — sengaja hanya placeholder dulu. -->
+  <div class="hidden" id="modeContentWakilan">
+    <div class="mode-placeholder">
+      <div class="mode-placeholder__icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+      <div class="mode-placeholder__title">Masih Tahap Pengembangan</div>
+      <div class="mode-placeholder__text">Form untuk mode Stasiun Tempat Wakilan sedang disiapkan. Silakan gunakan mode Stasiun Kedudukan untuk saat ini.</div>
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<!-- ==================== PREVIEW OVERLAY ==================== -->
+<div class="overlay" id="previewOverlay" aria-hidden="true">
+  <div class="doc">
+    <div class="doc__head">
+      <span class="panel__eyebrow">Periksa sebelum disimpan — tampilan ini sama persis dengan hasil PDF</span>
+      <h2>Preview Dokumen Serah Terima</h2>
+    </div>
+    <div class="doc__body">
+      <!-- Diisi dinamis oleh preview.js: tabel ini PERSIS sama dengan
+           struktur & isi tabel pada PDF final (lihat CONFIG.getTableColumns). -->
+      <div class="doc__table-wrap" id="pvTableWrap"></div>
+    </div>
+    <div class="doc__foot">
+      <button type="button" class="btn btn--ghost" id="btnEditPreview">← Kembali / Edit</button>
+      <button type="button" class="btn btn--primary" id="btnSavePreview">✓ Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== BUSY OVERLAY ==================== -->
+<div class="busy-overlay" id="busyOverlay">
+  <div class="spinner"></div>
+  <div class="busy-overlay__text" id="busyText">MEMPROSES…</div>
+</div>
+
+<!-- ==================== TOASTS ==================== -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- ==================== LIBRARIES ==================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- ==================== APP SCRIPTS ==================== -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/upload.js"></script>
+<script src="assets/js/form.js"></script>
+<script src="assets/js/pdf.js"></script>
+<script src="assets/js/preview.js"></script>
+<script src="assets/js/main.js"></script>
+
+<!-- ==================== MODE SWITCHER SCRIPT ====================
+     Toggle tampilan antara mode "Stasiun Kedudukan" (form yang sudah
+     ada) dan "Stasiun Tempat Wakilan" (placeholder). Berdiri sendiri,
+     tidak menyentuh logic form.js/main.js lain. -->
+<script>
+  (function () {
+    var tabKedudukan = document.getElementById('modeTabKedudukan');
+    var tabWakilan = document.getElementById('modeTabWakilan');
+    var contentKedudukan = document.getElementById('modeContentKedudukan');
+    var contentWakilan = document.getElementById('modeContentWakilan');
+
+    function setMode(mode) {
+      var isKedudukan = mode === 'kedudukan';
+
+      tabKedudukan.classList.toggle('is-active', isKedudukan);
+      tabWakilan.classList.toggle('is-active', !isKedudukan);
+      tabKedudukan.setAttribute('aria-selected', String(isKedudukan));
+      tabWakilan.setAttribute('aria-selected', String(!isKedudukan));
+
+      contentKedudukan.classList.toggle('hidden', !isKedudukan);
+      contentWakilan.classList.toggle('hidden', isKedudukan);
+    }
+
+    tabKedudukan.addEventListener('click', function () { setMode('kedudukan'); });
+    tabWakilan.addEventListener('click', function () { setMode('wakilan'); });
+  })();
+</script>
+</body>
+</html>
