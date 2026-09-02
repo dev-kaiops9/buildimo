@@ -81,6 +81,13 @@
             <i class="fa-solid fa-file-export w-5 text-center"></i>
             <span>PDF to A4</span>
           </button>
+
+          <!-- Menu "Profil" — HANYA muncul setelah user login (lihat applyLoggedInUI /
+               handleLogout: keduanya toggle class "hidden" pada tombol ini). -->
+          <button onclick="selectTab('profil')" id="nav-profil" class="nav-item hidden w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+            <i class="fa-solid fa-id-card w-5 text-center"></i>
+            <span>Profil</span>
+          </button>
         </nav>
       </div>
 
@@ -313,6 +320,62 @@
 
         </div>
       </div>
+
+      <!-- ================= PROFIL VIEW =================
+           Muncul lewat menu "Profil" di sidebar (hanya tampil setelah login).
+           Nama/Jabatan/Stasiun bisa diedit; NIPP hanya tampil (read-only) dan
+           dipakai sebagai kunci pencarian baris di sheet Pegawai saat disimpan
+           (lihat action "updateProfil" di Code.gs). -->
+      <div id="profilView" class="hidden flex-1 flex-col min-h-0 md:overflow-y-auto">
+        <div class="max-w-xl w-full mx-auto space-y-6 pb-4">
+
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-id-card text-lg"></i>
+              </div>
+              <div>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-800">Profil Saya</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Perbarui data Nama, Jabatan, dan Stasiun Anda.</p>
+              </div>
+            </div>
+
+            <form id="profilForm" class="space-y-4" onsubmit="handleSaveProfil(event)">
+              <!-- NIPP: hanya ditampilkan, TIDAK BISA diedit -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
+                <input type="text" id="profilNippInput" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-mono font-bold text-slate-500 cursor-not-allowed" disabled readonly />
+                <p class="text-[11px] text-slate-400 mt-1">NIPP tidak dapat diubah dari menu ini.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilNamaInput">Nama</label>
+                <input type="text" id="profilNamaInput" placeholder="Nama Lengkap" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilJabatanInput">Jabatan</label>
+                <input type="text" id="profilJabatanInput" placeholder="Jabatan" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilStasiunInput">Stasiun</label>
+                <input type="text" id="profilStasiunInput" placeholder="Stasiun" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+              </div>
+
+              <p id="profilError" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></p>
+
+              <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="submit" id="btnSaveProfil" class="px-6 py-2.5 bg-[#5B58CA] hover:bg-[#4a47b5] disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 text-white rounded-2xl font-semibold text-sm shadow-md shadow-indigo-200 transition-all duration-200">
+                  <span id="profilSaveLabel">Simpan Perubahan</span>
+                  <i id="profilSaveSpinner" class="fa-solid fa-circle-notch fa-spin hidden ml-1"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
     </main>
 
     <!-- ================= RIGHT WIDGET BAR ================= -->
@@ -532,7 +595,7 @@
         </p>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-          <input type="text" id="loginNameInput" placeholder="Contoh: Arjuna Bimasakti" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" id="loginNameInput" placeholder="Contoh: Christine Eva" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
@@ -540,11 +603,11 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Jabatan</label>
-          <input type="text" id="loginJabatanInput" placeholder="Contoh: PPKA" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" id="loginJabatanInput" placeholder="Contoh: PPKA Utama" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Stasiun</label>
-          <input type="text" id="loginStasiunInput" placeholder="Contoh: Ketapang" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Stasiun / Dipo</label>
+          <input type="text" id="loginStasiunInput" placeholder="Contoh: Stasiun Gambir (GMR)" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
 
         <button type="submit" id="btnDaftarDanLogin" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
@@ -617,7 +680,8 @@
       "imo-per-bulan": "IMO - Per Bulan",
       "serah-terima-pdf": "Serah Terima PDF",
       "pdf-to-a4": "PDF to A4",
-      about: "About | Data Backup"
+      about: "About | Data Backup",
+      profil: "Profil Saya"
     };
 
     const LOGIN_STORAGE_KEY = "imoUser";
@@ -1109,6 +1173,17 @@
       applyProfileWidgetUI(user);
       updateDashboardWelcome(user);
 
+      // Menu "Profil" di sidebar hanya muncul setelah login.
+      const navProfil = document.getElementById('nav-profil');
+      if (navProfil) navProfil.classList.remove('hidden');
+
+      // Jika halaman "Profil" sedang aktif (mis. baru saja login lalu langsung
+      // membuka menu ini, atau sesi dipulihkan saat halaman itu tersimpan
+      // sebagai tab terakhir), isi ulang form dengan data user terbaru.
+      if (document.getElementById('nav-profil') && !document.getElementById('profilView').classList.contains('hidden')) {
+        populateProfilForm(user);
+      }
+
       const initials = getInitials(user.nama);
       const loginBtnContainer = document.getElementById('loginBtnContainer');
       loginBtnContainer.innerHTML = `
@@ -1239,6 +1314,78 @@
       showLoginStage('nipp');
     }
 
+    // -----------------------------------------------------------------------
+    // Menu "Profil" — lihat/ubah Nama, Jabatan, Stasiun milik user yang
+    // sedang login. NIPP hanya ditampilkan (read-only), dipakai backend
+    // sebagai kunci pencarian baris di sheet Pegawai (action "updateProfil").
+    // -----------------------------------------------------------------------
+
+    // Isi form Profil dari data user aktif (localStorage "imoUser").
+    function populateProfilForm(user) {
+      document.getElementById('profilNippInput').value = user && user.nipp ? user.nipp : '';
+      document.getElementById('profilNamaInput').value = user && user.nama ? user.nama : '';
+      document.getElementById('profilJabatanInput').value = user && user.jabatan ? user.jabatan : '';
+      document.getElementById('profilStasiunInput').value = user && user.stasiun ? user.stasiun : '';
+      document.getElementById('profilError').classList.add('hidden');
+    }
+
+    function setProfilBusy(busy) {
+      document.getElementById('btnSaveProfil').disabled = busy;
+      document.getElementById('profilSaveSpinner').classList.toggle('hidden', !busy);
+    }
+
+    function showProfilError(msg) {
+      const el = document.getElementById('profilError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // Simpan perubahan Nama/Jabatan/Stasiun ke sheet Pegawai (dicari
+    // berdasarkan NIPP user yang sedang login), lalu sinkronkan sesi login
+    // (localStorage + badge pojok kanan atas + widget Informasi Akun) supaya
+    // perubahan langsung terlihat di semua menu tanpa perlu login ulang.
+    async function handleSaveProfil(e) {
+      e.preventDefault();
+
+      const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY) || 'null');
+      if (!savedUser || !savedUser.nipp) {
+        showProfilError('Sesi login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+
+      const nama = document.getElementById('profilNamaInput').value.trim();
+      const jabatan = document.getElementById('profilJabatanInput').value.trim();
+      const stasiun = document.getElementById('profilStasiunInput').value.trim();
+
+      if (!nama || !jabatan || !stasiun) {
+        showProfilError('Lengkapi Nama, Jabatan, dan Stasiun terlebih dahulu.');
+        return;
+      }
+
+      document.getElementById('profilError').classList.add('hidden');
+      setProfilBusy(true);
+      try {
+        const data = await callBackend({
+          action: 'updateProfil',
+          payload: { nipp: savedUser.nipp, nama: nama, jabatan: jabatan, stasiun: stasiun },
+        });
+
+        // Backend mengembalikan nama yang sudah dinormalisasi (Title Case) —
+        // pakai persis nilai balikan ini sebagai identitas user aktif, sama
+        // seperti alur pendaftaran.
+        const updatedUser = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+
+        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(updatedUser));
+        applyLoggedInUI(updatedUser);
+        populateProfilForm(updatedUser);
+        showToast('Profil berhasil diperbarui.');
+      } catch (err) {
+        showProfilError('Gagal menyimpan profil: ' + err.message);
+      } finally {
+        setProfilBusy(false);
+      }
+    }
+
     function showLoginStage(stage) {
       document.getElementById('loginStageNipp').classList.toggle('hidden', stage !== 'nipp');
       document.getElementById('loginStageFound').classList.toggle('hidden', stage !== 'found');
@@ -1262,6 +1409,16 @@
     }
 
     function handleLogout() {
+      // Sembunyikan menu "Profil" dari sidebar (hanya boleh terlihat saat login).
+      const navProfil = document.getElementById('nav-profil');
+      if (navProfil) navProfil.classList.add('hidden');
+
+      // Kalau menu "Profil" sedang aktif saat logout, jangan biarkan halaman
+      // kosong tanpa akses — pindahkan ke Dashboard.
+      if (document.getElementById('profilView') && !document.getElementById('profilView').classList.contains('hidden')) {
+        selectTab('dashboard');
+      }
+
       // Sembunyikan widget "PDF Tersimpan", tampilkan lagi ajakan login.
       const savedPdfWidget = document.getElementById('savedPdfWidget');
       savedPdfWidget.classList.add('hidden');
@@ -1308,6 +1465,18 @@
       // diarahkan otomatis ke sub-menu default "Per Hari".
       if (tabId === 'imo') tabId = 'imo-per-hari';
 
+      // Menu "Profil" hanya boleh diakses saat login (mis. tab tersimpan di
+      // localStorage dari sesi yang sudah logout) — jika belum login,
+      // alihkan ke Dashboard saja.
+      if (tabId === 'profil') {
+        let hasSession = false;
+        try {
+          const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+          hasSession = !!(savedUser && savedUser.nipp);
+        } catch (err) { /* abaikan data sesi yang rusak */ }
+        if (!hasSession) tabId = 'dashboard';
+      }
+
       document.querySelectorAll('.nav-item, .nav-subitem').forEach(btn => {
         btn.classList.remove('bg-white/20', 'text-white', 'font-semibold', 'shadow-inner', 'backdrop-blur-md', 'bg-white/10');
         btn.classList.add('text-indigo-100/70', 'font-medium');
@@ -1343,18 +1512,21 @@
       const toolView = document.getElementById('toolView');
       const toolFrame = document.getElementById('toolFrame');
       const aboutView = document.getElementById('aboutView');
+      const profilView = document.getElementById('profilView');
       const headerActions = document.getElementById('headerActions');
       const pageTitle = document.getElementById('pageTitle');
 
       pageTitle.textContent = tabTitles[tabId] || 'Tools';
       updateRightWidgetsVisibility(tabId);
 
-      // Sembunyikan ketiga view dulu, lalu tampilkan yang sesuai tab aktif.
+      // Sembunyikan semua view dulu, lalu tampilkan yang sesuai tab aktif.
       dashboardView.classList.add('hidden');
       toolView.classList.add('hidden');
       toolView.classList.remove('flex');
       aboutView.classList.add('hidden');
       aboutView.classList.remove('flex');
+      profilView.classList.add('hidden');
+      profilView.classList.remove('flex');
 
       if (tabRoutes[tabId]) {
         // Tampilkan tool di dalam frame pada shell yang sama.
@@ -1374,6 +1546,19 @@
         aboutView.classList.remove('hidden');
         aboutView.classList.add('flex');
         headerActions.classList.add('hidden');
+      } else if (tabId === 'profil') {
+        profilView.classList.remove('hidden');
+        profilView.classList.add('flex');
+        headerActions.classList.add('hidden');
+
+        // Selalu isi ulang form dengan data user AKTIF (bukan cache lama)
+        // setiap kali menu ini dibuka.
+        try {
+          const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+          populateProfilForm(savedUser);
+        } catch (err) {
+          populateProfilForm(null);
+        }
       } else {
         dashboardView.classList.remove('hidden');
         headerActions.classList.remove('hidden');
