@@ -10,11 +10,11 @@
 const CONFIG = {
   // URL Web App hasil deploy Google Apps Script (lihat apps-script/Code.gs).
   // Contoh: "https://script.google.com/macros/s/XXXXXXXX/exec"
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyPd0fyxJpy8vWpzj9GBg1-1nENo9Nqq-SfjH3rpm55c1Iy23HiduSNzwYJSt-ikwY4/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwUid_U1Qe3Fk0AvXOkbP0r9Tra03nCzRiHb2m8VJb0Dm5TskoF3TPqFtKwqs-K9nQ/exec",
 
   // Nama folder utama di Google Drive tempat semua PDF/foto disimpan.
   // Struktur akhir: {DRIVE_ROOT_FOLDER}/{Stasiun}/{Jabatan}/{NIPP}/
-  DRIVE_ROOT_FOLDER: "IMO_2026",
+  DRIVE_ROOT_FOLDER: "BUILDIMO_2026",
 
   // Daftar pilihan dropdown. Ubah di sini jika ada penambahan/pengurangan opsi.
   OPTIONS: {
