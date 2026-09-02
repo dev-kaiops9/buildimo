@@ -43,8 +43,14 @@
     <aside class="w-full md:w-64 bg-[#5B58CA] text-white p-6 flex flex-col justify-between shrink-0">
       <div>
         <!-- Logo -->
-        <div class="flex items-center gap-2 mb-10">
+        <div class="mb-10 flex flex-col items-center text-center">
           <span class="text-2xl font-extrabold tracking-tight">IMO Tools</span>
+          <!-- Tombol "Update : dd/mm/yyyy" — desain samar, tanggalnya otomatis
+               mengikuti entri paling atas di CHANGELOG (lihat renderChangelogBadge()).
+               Klik untuk membuka popup "Catatan Update". -->
+          <button type="button" onclick="openChangelogModal()" id="btnChangelog" class="mt-1.5 text-[10.5px] font-medium text-indigo-100/40 hover:text-indigo-100/75 active:scale-95 transition-all duration-200">
+            Update : <span id="changelogBadgeDate">-</span>
+          </button>
         </div>
 
         <!-- Menu Utama -->
@@ -543,6 +549,34 @@
     </div>
   </div>
 
+  <!-- ================= CATATAN UPDATE (CHANGELOG) MODAL =================
+       Dibuka lewat tombol "Update : dd/mm/yyyy" di bawah logo sidebar.
+       Isinya dirender dinamis dari array CHANGELOG di <script> — SATU
+       sumber data untuk badge tanggal & isi popup ini (lihat
+       renderChangelogBadge() / renderChangelogModal()). -->
+  <div id="changelogModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="if (event.target === this) closeChangelogModal()">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 md:p-7 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300 max-h-[80vh] flex flex-col" id="changelogModalCard">
+      <div class="flex items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Catatan Update</h3>
+            <p class="text-xs text-slate-400">Riwayat perubahan &amp; fitur baru IMO Tools</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeChangelogModal()" class="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="changelogList" class="mt-5 space-y-5 overflow-y-auto pr-1 flex-1 min-h-0">
+        <!-- Diisi dinamis oleh renderChangelogModal() dari array CHANGELOG -->
+      </div>
+    </div>
+  </div>
+
   <!-- ================= LOGIN MODAL (NIPP-first, tersambung ke sheet Pegawai) ================= -->
   <div id="loginModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300" id="loginModalCard">
@@ -696,6 +730,27 @@
 
     const LOGIN_STORAGE_KEY = "imoUser";
     const TAB_STORAGE_KEY = "imoActiveTab";
+
+    // -----------------------------------------------------------------------
+    // CATATAN UPDATE (Changelog) — SATU-SATUNYA sumber data untuk badge
+    // "Update : dd/mm/yyyy" di bawah logo sidebar DAN isi popup "Catatan
+    // Update" (lihat renderChangelogBadge() / renderChangelogModal()).
+    //
+    // CARA PAKAI: setiap kali fitur/perbaikan baru selesai di-deploy ke
+    // website, tambahkan SATU entri baru di PALING ATAS array ini (urutan
+    // wajib terbaru -> terlama). Badge tanggal di sidebar otomatis mengikuti
+    // entri paling atas (CHANGELOG[0]) — tidak perlu mengubah tempat lain.
+    // -----------------------------------------------------------------------
+    const CHANGELOG = [
+      {
+        tanggal: "02/09/2026",
+        items: [
+          "Menu baru \"Profil\" di sidebar (muncul setelah login) — lihat & ubah Nama, Jabatan, Stasiun.",
+          "Menu \"Profil\" memakai mode Lihat/Edit: tekan tombol \"Edit\" dulu sebelum data bisa diubah, NIPP tidak pernah bisa diedit.",
+          "Popup \"Catatan Update\" ini ditambahkan di sidebar.",
+        ],
+      },
+    ];
 
     // URL Web App Google Apps Script (Code.gs) — sama dengan CONFIG.APPS_SCRIPT_URL
     // yang dipakai di imo/assets/js/config.js, sheet "Pegawai" yang sama juga
@@ -1746,8 +1801,68 @@
       }, 3000);
     }
 
+    // ---------------------------------------------------------------------
+    // Popup "Catatan Update" (Changelog) — badge tanggal di sidebar & isi
+    // popup ini sama-sama dirender dari array CHANGELOG di atas.
+    // ---------------------------------------------------------------------
+
+    // Set teks badge "Update : dd/mm/yyyy" di bawah logo sidebar, mengikuti
+    // entri PALING ATAS (paling baru) di CHANGELOG.
+    function renderChangelogBadge() {
+      const el = document.getElementById('changelogBadgeDate');
+      if (!el) return;
+      el.textContent = (CHANGELOG[0] && CHANGELOG[0].tanggal) || '-';
+    }
+
+    // Render seluruh isi popup: dikelompokkan per tanggal, entri terbaru di
+    // paling atas, ditandai badge "Terbaru".
+    function renderChangelogModal() {
+      const wrap = document.getElementById('changelogList');
+      if (!wrap) return;
+
+      if (!CHANGELOG.length) {
+        wrap.innerHTML = `<p class="text-sm text-slate-400 text-center py-6">Belum ada catatan update.</p>`;
+        return;
+      }
+
+      wrap.innerHTML = CHANGELOG.map((entry, idx) => `
+        <div class="${idx !== CHANGELOG.length - 1 ? 'pb-5 border-b border-slate-100' : ''}">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-xs font-bold text-[#5B58CA] font-mono bg-indigo-50 px-2.5 py-1 rounded-full">${entry.tanggal}</span>
+            ${idx === 0 ? '<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wide">Terbaru</span>' : ''}
+          </div>
+          <ul class="space-y-1.5">
+            ${entry.items.map((item) => `
+              <li class="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-[10px] mt-1.5 shrink-0"></i>
+                <span>${item}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `).join('');
+    }
+
+    function openChangelogModal() {
+      renderChangelogModal();
+      const modal = document.getElementById('changelogModal');
+      const card = document.getElementById('changelogModalCard');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeChangelogModal() {
+      const modal = document.getElementById('changelogModal');
+      const card = document.getElementById('changelogModalCard');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+    }
+
     // Initial Load
     window.addEventListener('DOMContentLoaded', () => {
+      renderChangelogBadge();
       renderCourses(coursesData);
       renderCalendar();
       initSavedPdfFilters();
