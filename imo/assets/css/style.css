@@ -668,6 +668,17 @@ input[type="date"]:focus {
   background: var(--mint-100);
 }
 .dropzone.is-invalid { border-color: var(--signal-red); }
+.dropzone.is-loading { cursor: wait; opacity: 0.75; pointer-events: none; }
+
+.dropzone__spinner {
+  width: 22px;
+  height: 22px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--mint-600);
+  animation: spin 0.7s linear infinite;
+}
 
 .dropzone__icon {
   width: 40px;
