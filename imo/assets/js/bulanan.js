@@ -590,8 +590,10 @@ const Api = {
   },
 
   /**
-   * Ganti isi 1 PDF harian LAMA dengan hasil kompres ulang — dipakai
-   * fitur "Kompres PDF Lama" (lihat KompresLamaPdf di bawah).
+   * Ganti isi 1 PDF harian LAMA dengan hasil kompres ulang. Sengaja
+   * dipertahankan meski fitur "Kompres PDF Lama" sudah dihapus dari UI —
+   * bisa dipicu manual (mis. lewat console/skrip terpisah) untuk migrasi
+   * PDF harian lama tanpa perlu ubah Code.gs lagi.
    * @returns {Promise<{fileUrl: string}>} fileUrl BARU (menggantikan yang lama)
    */
   async gantiPdfLamaTerkompresi({ nipp, fileUrl, pdfBase64 }) {
@@ -1357,148 +1359,6 @@ function wireUnduhImo() {
 }
 
 // ---------------------------------------------------------------------
-// "Kompres PDF Lama" — migrasi 1x untuk PDF harian yang TERLANJUR
-// tersimpan SEBELUM perbaikan kompresi foto (rata-rata ±8MB/file). Kalau
-// dibiarkan, "Unduh IMO" yang menggabungkan ±30 file sebulan bisa tembus
-// ratusan MB — jauh di atas batas ukuran request Apps Script (±50MB),
-// jadi bukan cuma berat, tapi bisa gagal tersimpan sama sekali.
-//
-// Caranya: tiap PDF harian lama di-render ULANG jadi gambar (pakai
-// pdf.js — pustaka yang sama dipakai fitur "Foto Serah Terima dari PDF
-// scan" di upload.js) pada resolusi cetak wajar (~200 DPI), lalu
-// dibungkus ulang jadi PDF 1 halaman baru yang jauh lebih kecil (pakai
-// pdf-lib) — MENGGANTIKAN isi file lama di Drive lewat
-// Api.gantiPdfLamaTerkompresi (baris data di sheet SerahTerima TIDAK
-// berubah, cuma FileURL_PDF-nya yang diperbarui, lihat Code.gs).
-//
-// Konsekuensi yang perlu disadari: tabel & teks yang di PDF asli masih
-// vektor tajam (dibuat jsPDF) ikut "diratakan" jadi 1 gambar oleh langkah
-// ini — di ~200 DPI masih jelas terbaca/dicetak, tapi bukan lagi teks
-// vektor murni. Ini proses SEKALI SAJA per file; PDF yang sudah dikompres
-// (atau yang dibuat setelah perbaikan, sudah otomatis kecil) aman kalau
-// ikut diproses ulang, cuma ukurannya tidak akan banyak berubah lagi.
-// ---------------------------------------------------------------------
-const KOMPRES_LAMA_DPI = 200;
-
-if (typeof pdfjsLib !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-}
-
-const KompresLamaPdf = {
-  _busy: false,
-
-  /** Render halaman 1 PDF lama (base64) jadi JPEG di KOMPRES_LAMA_DPI,
-   *  lalu bungkus ulang jadi PDF 1 halaman baru berukuran sama persis
-   *  dengan halaman aslinya. @returns {Promise<string>} base64 PDF baru. */
-  async _kompresSatuPdf(base64Lama) {
-    if (typeof pdfjsLib === "undefined") {
-      throw new Error("Pustaka pdf.js belum termuat — muat ulang halaman.");
-    }
-    const bytesLama = Uint8Array.from(atob(base64Lama), (c) => c.charCodeAt(0));
-
-    const pdfDoc = await pdfjsLib.getDocument({ data: bytesLama }).promise;
-    const page = await pdfDoc.getPage(1);
-    // Ukuran halaman asli dalam pt (1/72 inch) — dipakai lagi untuk
-    // membuat halaman PDF baru dengan ukuran fisik yang identik.
-    const viewportPt = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: KOMPRES_LAMA_DPI / 72 });
-
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    const jpgUrl = canvas.toDataURL("image/jpeg", 0.85);
-    const jpgBytes = await (await fetch(jpgUrl)).arrayBuffer();
-
-    const { PDFDocument } = PDFLib;
-    const out = await PDFDocument.create();
-    const img = await out.embedJpg(jpgBytes);
-    const newPage = out.addPage([viewportPt.width, viewportPt.height]);
-    newPage.drawImage(img, { x: 0, y: 0, width: viewportPt.width, height: viewportPt.height });
-
-    const bytesBaru = await out.save();
-    return PdfBulanan._toBase64(bytesBaru);
-  },
-
-  /** Jalankan migrasi untuk seluruh PDF pada bulan & tahun terpilih. */
-  async run(bulanIdx, tahun) {
-    if (this._busy) return;
-    if (!Session.current) { Toast.show("Silakan login terlebih dahulu.", "warn"); return; }
-
-    const list = SavedPdfList.filteredSorted(bulanIdx, tahun).filter((it) => it.fileUrl);
-    if (!list.length) {
-      Toast.show("Tidak ada PDF tersimpan pada bulan & tahun ini.", "info");
-      return;
-    }
-
-    this._busy = true;
-    Busy.show("MENGOMPRES PDF LAMA…", { progress: true });
-
-    const total = list.length;
-    let done = 0, sukses = 0, gagal = 0;
-    // Concurrency lebih kecil dari fetch biasa (Unduh IMO pakai 4) karena
-    // tiap item di sini JUGA merender <canvas> di browser (lebih berat
-    // per-item, bukan cuma network round-trip).
-    const CONCURRENCY = 3;
-    const queue = list.slice();
-
-    const worker = async () => {
-      while (queue.length) {
-        const item = queue.shift();
-        try {
-          const fileId = extractDriveFileId_(item.fileUrl);
-          if (!fileId) throw new Error("ID file tidak ditemukan.");
-          const base64Lama = await Api.ambilPdfBase64(fileId);
-          const base64Baru = await this._kompresSatuPdf(base64Lama);
-          const hasil = await Api.gantiPdfLamaTerkompresi({
-            nipp: Session.current.nipp,
-            fileUrl: item.fileUrl,
-            pdfBase64: base64Baru,
-          });
-          // Perbarui fileUrl di cache lokal supaya daftar & "Unduh IMO"
-          // berikutnya langsung memakai file baru tanpa perlu reload.
-          const cached = SavedPdfList.all.find((it) => it.fileUrl === item.fileUrl);
-          if (cached && hasil && hasil.fileUrl) cached.fileUrl = hasil.fileUrl;
-          sukses++;
-        } catch (err) {
-          gagal++;
-          Toast.show(`Gagal kompres PDF ${item.tanggal} (${item.dinas}): ${err.message}`, "warn");
-        }
-        done++;
-        Busy.setProgress(Math.round((done / total) * 100));
-      }
-    };
-
-    try {
-      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, () => worker()));
-    } finally {
-      this._busy = false;
-      Busy.hide();
-      const cur = MonthYear.get();
-      SavedPdfList.render(cur.bulanIdx, cur.tahun);
-      Toast.show(
-        `Kompres selesai: ${sukses} berhasil${gagal ? `, ${gagal} gagal (lihat notifikasi di atas)` : ""}.`,
-        gagal ? "warn" : "success"
-      );
-    }
-  },
-};
-
-function wireKompresLama() {
-  const btn = document.getElementById("btnKompresLama");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    const { bulanIdx, tahun } = MonthYear.get();
-    KompresLamaPdf.run(bulanIdx, tahun);
-  });
-}
-
-// ---------------------------------------------------------------------
 // Ajakan login (kalau belum login lewat dashboard IMO Tools)
 // ---------------------------------------------------------------------
 function wireLoginGate() {
@@ -1527,7 +1387,6 @@ document.addEventListener("DOMContentLoaded", () => {
   SmartcardWidget.init();
   SavedPdfList.initModal();
   wireUnduhImo();
-  wireKompresLama();
 
   const loggedIn = Session.load();
 

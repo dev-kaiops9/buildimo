@@ -154,18 +154,6 @@
       </div>
       <p class="panel__hint">Seluruh PDF serah terima harian pada bulan &amp; tahun terpilih, terurut tanggal termuda dulu lalu Dinas Pagi → Siang → Malam. Daftar ini yang akan digabungkan ke dalam hasil unduhan.</p>
 
-      <!-- "Kompres PDF Lama": migrasi 1x untuk PDF harian yang dibuat SEBELUM
-           perbaikan kompresi foto (biasanya masih ±8MB/file) — menggantikan
-           isinya jadi jauh lebih kecil TANPA mengubah baris data/riwayatnya
-           di sheet. PDF yang sudah kecil (dibuat setelah perbaikan) aman
-           ikut diproses ulang, cuma tidak banyak berubah ukurannya. -->
-      <div class="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2.5 mb-3">
-        <p class="text-[10.5px] text-amber-800 leading-snug">
-          PDF harian lama (dibuat sebelum perbaikan) biasanya masih berukuran besar (±8MB) dan bisa bikin "Unduh IMO" gagal/berat. Klik untuk mengompres ulang PDF bulan &amp; tahun terpilih di atas.
-        </p>
-        <button type="button" class="btn btn--ghost shrink-0" id="btnKompresLama" style="white-space:nowrap;">🗜 Kompres PDF Lama</button>
-      </div>
-
       <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
         <span class="text-xs font-bold text-slate-500 tracking-wider uppercase">Daftar PDF</span>
         <span id="bulanPdfCount" class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">0</span>
@@ -269,14 +257,9 @@
 
 <!-- ==================== LIBRARIES ==================== -->
 <!-- pdf-lib: dipakai untuk membuat halaman Cover/SmartCard/Daftar Hadir,
-     menggabungkan (merge) halaman dari PDF-PDF harian yang sudah tersimpan
-     menjadi satu file PDF akhir, DAN membangun ulang PDF hasil kompres di
-     fitur "Kompres PDF Lama". -->
+     dan menggabungkan (merge) halaman dari PDF-PDF harian yang sudah
+     tersimpan menjadi satu file PDF akhir. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<!-- pdf.js: dipakai KHUSUS oleh fitur "Kompres PDF Lama" untuk merender
-     halaman PDF harian lama jadi gambar sebelum dibungkus ulang jadi PDF
-     baru yang lebih kecil (lihat KompresLamaPdf di assets/js/bulanan.js). -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <!-- ==================== APP SCRIPTS ==================== -->
 <script src="assets/js/config.js"></script>

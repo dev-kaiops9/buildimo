@@ -16,13 +16,14 @@
  */
 
 // DPI target konversi PDF -> JPG untuk kolom Foto Serah Terima.
-// Diturunkan dari 450 -> 250: gambar tetap tajam untuk dicetak/dilihat
-// (250 DPI jauh di atas ambang batas mata & printer biasa di ukuran sel
-// tabel yang dipakai pdf.js), tapi ukuran file jauh lebih kecil sehingga
-// tidak membebani proses "Unduh IMO" bulanan yang menggabungkan banyak
-// PDF harian sekaligus. Kalau nanti dirasa masih kurang tajam saat
-// dicetak, boleh dinaikkan lagi bertahap (mis. 300) sambil dicek hasilnya.
-const PDF_SERAH_TERIMA_DPI = 250;
+// Dipertahankan TINGGI (450) demi ketajaman sumber, karena DPI di sini
+// TIDAK LAGI menentukan ukuran akhir file PDF harian — pdf.js sekarang
+// selalu mengompres ulang setiap foto (baik hasil konversi PDF ini
+// maupun foto langsung) memakai budget ukuran adaptif per-hari (lihat
+// PDF_HARIAN_TARGET_BYTES di pdf.js) saat PDF harian dibuat. Jadi 450
+// DPI di sini hanya memastikan sumbernya setajam mungkin SEBELUM
+// di-downscale ke ukuran sel tabel; tidak membebani ukuran PDF akhir.
+const PDF_SERAH_TERIMA_DPI = 450;
 
 if (typeof pdfjsLib !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -300,7 +301,7 @@ const UploadField = {
         fileName,
       });
 
-      Toast.show("PDF berhasil dikonversi ke JPG 450 DPI.", "success");
+      Toast.show(`PDF berhasil dikonversi ke JPG ${PDF_SERAH_TERIMA_DPI} DPI.`, "success");
     } catch (err) {
       console.error(err);
       Toast.show(err && err.message ? err.message : "Gagal mengonversi PDF.", "error");
