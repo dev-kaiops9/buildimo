@@ -616,8 +616,8 @@
         </button>
       </form>
 
-      <!-- ---- TAHAP 2A: NIPP DITEMUKAN ---- -->
-      <div id="loginStageFound" class="hidden space-y-3.5">
+      <!-- ---- TAHAP 2A: NIPP DITEMUKAN -> masukkan Password ---- -->
+      <form id="loginStageFound" onsubmit="handleLoginConfirmed(event)" class="hidden space-y-3.5">
         <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
           <p class="text-xs font-bold text-emerald-700 mb-1">Data Pegawai Ditemukan</p>
           <div class="flex items-start justify-between gap-2 text-xs">
@@ -637,13 +637,17 @@
             <span id="foundStasiun" class="font-semibold text-slate-700 text-right">-</span>
           </div>
         </div>
-        <button type="button" onclick="handleLoginConfirmed()" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <input type="password" id="loginFoundPasswordInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <button type="submit" id="btnLoginConfirmed" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
           LOGIN
         </button>
         <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
           ← Ganti NIPP
         </button>
-      </div>
+      </form>
 
       <!-- ---- TAHAP 2B: NIPP BELUM TERDAFTAR -> FORM PENDAFTARAN ---- -->
       <form id="loginStageDaftar" onsubmit="handleDaftarDanLogin(event)" class="hidden space-y-3.5">
@@ -795,7 +799,7 @@
     // URL Web App Google Apps Script (Code.gs) — sama dengan CONFIG.APPS_SCRIPT_URL
     // yang dipakai di imo/assets/js/config.js, sheet "Pegawai" yang sama juga
     // dipakai sebagai database identitas Login (lihat Code.gs).
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPd0fyxJpy8vWpzj9GBg1-1nENo9Nqq-SfjH3rpm55c1Iy23HiduSNzwYJSt-ikwY4/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUid_U1Qe3Fk0AvXOkbP0r9Tra03nCzRiHb2m8VJb0Dm5TskoF3TPqFtKwqs-K9nQ/exec";
 
     // Data pegawai hasil "Cek NIPP" yang sedang menunggu konfirmasi LOGIN.
     let pendingNipp = "";
@@ -1345,6 +1349,7 @@
           document.getElementById('foundNipp').innerText = pendingUser.nipp;
           document.getElementById('foundJabatan').innerText = pendingUser.jabatan;
           document.getElementById('foundStasiun').innerText = pendingUser.stasiun;
+          document.getElementById('loginFoundPasswordInput').value = '';
           showLoginStage('found');
         } else {
           // NIPP belum terdaftar -> tampilkan form pendaftaran, NIPP sudah terisi otomatis.
@@ -1366,22 +1371,45 @@
       }
     }
 
-    // ---- Tahap 2A: NIPP ditemukan -> user menekan LOGIN ----
-    function handleLoginConfirmed() {
+    // ---- Tahap 2A: NIPP ditemukan -> user memasukkan Password lalu LOGIN ----
+    async function handleLoginConfirmed(e) {
+      if (e) e.preventDefault();
       if (!pendingUser) return;
-      applyLoggedInUI(pendingUser);
-      localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(pendingUser));
-      closeLoginModal();
-      showToast(`Selamat datang, ${pendingUser.nama}!`);
 
-      // Klik LOGIN ini murni proses di browser (tidak memanggil backend sama
-      // sekali), jadi Counter di sheet TIDAK akan bertambah dengan sendirinya
-      // seperti action lain. Laporkan pemakaian lewat action ringan
-      // "catatPemakaian" (lihat Code.gs) supaya tetap ikut ke-counter, lalu
-      // sinkronkan widget "Telah Digunakan" begitu selesai.
-      callBackend({ action: 'catatPemakaian' })
-        .then(loadUsageCounter)
-        .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
+      const password = document.getElementById('loginFoundPasswordInput').value;
+      if (!password) {
+        showLoginError('Password wajib diisi.');
+        return;
+      }
+
+      setLoginBusy(true);
+      try {
+        // Verifikasi Password ke backend (action "loginPegawai" di Code.gs)
+        // — hasilnya dipakai sebagai identitas user aktif (bukan pendingUser
+        // hasil cekNipp), sama seperti alur pendaftaran.
+        const data = await callBackend({
+          action: 'loginPegawai',
+          payload: { nipp: pendingUser.nipp, password: password },
+        });
+        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+
+        applyLoggedInUI(user);
+        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        closeLoginModal();
+        document.getElementById('loginFoundPasswordInput').value = '';
+        showToast(`Selamat datang, ${user.nama}!`);
+        // "loginPegawai" TIDAK menambah Counter di backend (lihat
+        // COUNTER_EXCLUDED_ACTIONS di Code.gs), jadi laporkan pemakaian
+        // lewat action ringan "catatPemakaian", lalu sinkronkan widget
+        // "Telah Digunakan" begitu selesai.
+        callBackend({ action: 'catatPemakaian' })
+          .then(loadUsageCounter)
+          .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
+      } catch (err) {
+        showLoginError('Gagal login: ' + err.message);
+      } finally {
+        setLoginBusy(false);
+      }
     }
 
     // -----------------------------------------------------------------------
@@ -1746,7 +1774,7 @@
       document.getElementById('loginStageDaftar').classList.toggle('hidden', stage !== 'daftar');
       document.getElementById('loginModalSubtitle').textContent =
         stage === 'nipp' ? 'Masukkan NIPP untuk mencari data pegawai' :
-        stage === 'found' ? 'Periksa data pegawai di bawah ini' :
+        stage === 'found' ? 'Masukkan Password untuk melanjutkan' :
         'Lengkapi data untuk mendaftar';
       document.getElementById('loginError').classList.add('hidden');
     }
@@ -1759,6 +1787,7 @@
 
     function setLoginBusy(busy) {
       document.getElementById('btnCekNipp').disabled = busy;
+      document.getElementById('btnLoginConfirmed').disabled = busy;
       document.getElementById('btnDaftarDanLogin').disabled = busy;
     }
 
