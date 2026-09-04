@@ -16,7 +16,13 @@
  */
 
 // DPI target konversi PDF -> JPG untuk kolom Foto Serah Terima.
-const PDF_SERAH_TERIMA_DPI = 450;
+// Diturunkan dari 450 -> 250: gambar tetap tajam untuk dicetak/dilihat
+// (250 DPI jauh di atas ambang batas mata & printer biasa di ukuran sel
+// tabel yang dipakai pdf.js), tapi ukuran file jauh lebih kecil sehingga
+// tidak membebani proses "Unduh IMO" bulanan yang menggabungkan banyak
+// PDF harian sekaligus. Kalau nanti dirasa masih kurang tajam saat
+// dicetak, boleh dinaikkan lagi bertahap (mis. 300) sambil dicek hasilnya.
+const PDF_SERAH_TERIMA_DPI = 250;
 
 if (typeof pdfjsLib !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc =

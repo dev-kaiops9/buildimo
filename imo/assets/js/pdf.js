@@ -103,8 +103,8 @@ const Pdf = {
       const croppedSerahTerima = await this._withCroppedDataUrl(photos.fotoSerahTerima);
       const croppedDokumentasi = await this._withCroppedDataUrl(photos.fotoDokumentasi);
 
-      this._placeImageInCell(doc, croppedSerahTerima, targetCol, bodyTop, rowBodyH);
-      this._placeImageInCell(doc, croppedDokumentasi, dokCol, bodyTop, rowBodyH);
+      await this._placeImageInCell(doc, croppedSerahTerima, targetCol, bodyTop, rowBodyH);
+      await this._placeImageInCell(doc, croppedDokumentasi, dokCol, bodyTop, rowBodyH);
     }
 
     const fileName = CONFIG.buildPdfFileName(data.tanggal, data.dinas);
@@ -234,27 +234,85 @@ const Pdf = {
     });
   },
 
-  _placeImageInCell(doc, photo, col, bodyTop, rowBodyH) {
+  async _placeImageInCell(doc, photo, col, bodyTop, rowBodyH) {
     if (!photo || !col) return;
     const pad = 4;
     const maxW = col.width - pad * 2;
     const maxH = rowBodyH - pad * 2;
 
+    // Foto di-resize (diperkecil, TIDAK PERNAH diperbesar) supaya resolusi
+    // pikselnya pas dengan ukuran sel tabel ini di ~300 DPI cetak — piksel
+    // di atas itu tidak pernah kelihatan di ukuran sel sekecil ini, jadi
+    // membuangnya tidak membuat foto pecah/blur, cuma memangkas ukuran
+    // file PDF (yang sebelumnya jadi berat saat digabung di "Unduh IMO"
+    // bulanan). Lihat _resizeForPrint di bawah.
+    const dataUrlForPdf = await this._resizeForPrint(photo.dataUrl, photo.mimeType, maxW, maxH);
     const format = photo.mimeType && photo.mimeType.includes("png") ? "PNG" : "JPEG";
 
     try {
-      const props = doc.getImageProperties(photo.dataUrl);
+      const props = doc.getImageProperties(dataUrlForPdf);
       const ratio = Math.min(maxW / props.width, maxH / props.height);
       const drawW = props.width * ratio;
       const drawH = props.height * ratio;
       const drawX = col.x + pad + (maxW - drawW) / 2;
       const drawY = bodyTop + pad + (maxH - drawH) / 2;
 
-      doc.addImage(photo.dataUrl, format, drawX, drawY, drawW, drawH, undefined, "NONE");
+      doc.addImage(dataUrlForPdf, format, drawX, drawY, drawW, drawH, undefined, "NONE");
     } catch (e) {
       doc.setFontSize(8);
       doc.text("(gambar tidak dapat ditampilkan)", col.x + pad, bodyTop + pad + 6);
     }
+  },
+
+  /**
+   * Downscale (TIDAK PERNAH upscale) sebuah foto ke resolusi piksel yang
+   * sepadan dengan ukuran cetak targetnya (targetWmm x targetHmm di
+   * targetDpi), lalu re-encode dengan kualitas JPEG/PNG tinggi. Ini yang
+   * memangkas ukuran file PDF secara signifikan tanpa membuat foto
+   * terlihat pecah — selama targetDpi cukup tinggi (300 = standar cetak
+   * dokumen), mata/printer tidak bisa membedakan hasilnya dari foto
+   * resolusi penuh pada ukuran sel tabel ini.
+   */
+  _resizeForPrint(dataUrl, mimeType, targetWmm, targetHmm, targetDpi = 300, quality = 0.92) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = Math.max(1, Math.round((targetWmm / 25.4) * targetDpi));
+          const maxH = Math.max(1, Math.round((targetHmm / 25.4) * targetDpi));
+
+          if (img.width <= maxW && img.height <= maxH) {
+            // Sudah lebih kecil/sama dari kebutuhan cetak — biarkan apa
+            // adanya, tidak perlu diproses ulang (dan tidak di-upscale).
+            resolve(dataUrl);
+            return;
+          }
+
+          const scale = Math.min(maxW / img.width, maxH / img.height);
+          const outW = Math.max(1, Math.round(img.width * scale));
+          const outH = Math.max(1, Math.round(img.height * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas 2D context tidak tersedia.");
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, outW, outH);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, outW, outH);
+
+          const outType = mimeType && mimeType.includes("png") ? "image/png" : "image/jpeg";
+          const outUrl = canvas.toDataURL(outType, quality);
+          resolve(outUrl && outUrl !== "data:," ? outUrl : dataUrl);
+        } catch (e) {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
   },
 
   _formatTanggalPanjang(isoDate) {
