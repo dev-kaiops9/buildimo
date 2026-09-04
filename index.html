@@ -605,47 +605,18 @@
 
       <div id="loginError" class="hidden mb-3 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></div>
 
-      <!-- ---- TAHAP 1: CEK NIPP ---- -->
-      <form id="loginStageNipp" onsubmit="handleCekNippSubmit(event)" class="space-y-3.5">
+      <!-- ---- TAHAP 1: NIPP + Password -> langsung LOGIN ---- -->
+      <form id="loginStageNipp" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
           <input type="text" id="loginNippInput" inputmode="numeric" placeholder="Contoh: 1094881999" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-mono" />
         </div>
-        <button type="submit" id="btnCekNipp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
-          LOGIN
-        </button>
-      </form>
-
-      <!-- ---- TAHAP 2A: NIPP DITEMUKAN -> masukkan Password ---- -->
-      <form id="loginStageFound" onsubmit="handleLoginConfirmed(event)" class="hidden space-y-3.5">
-        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
-          <p class="text-xs font-bold text-emerald-700 mb-1">Data Pegawai Ditemukan</p>
-          <div class="flex items-start justify-between gap-2 text-xs">
-            <span class="text-slate-400 font-medium shrink-0">Nama</span>
-            <span id="foundNama" class="font-bold text-slate-800 text-right">-</span>
-          </div>
-          <div class="flex items-start justify-between gap-2 text-xs">
-            <span class="text-slate-400 font-medium shrink-0">NIPP</span>
-            <span id="foundNipp" class="font-bold text-indigo-600 font-mono text-right">-</span>
-          </div>
-          <div class="flex items-start justify-between gap-2 text-xs">
-            <span class="text-slate-400 font-medium shrink-0">Jabatan</span>
-            <span id="foundJabatan" class="font-semibold text-slate-700 text-right">-</span>
-          </div>
-          <div class="flex items-start justify-between gap-2 text-xs">
-            <span class="text-slate-400 font-medium shrink-0">Stasiun</span>
-            <span id="foundStasiun" class="font-semibold text-slate-700 text-right">-</span>
-          </div>
-        </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-          <input type="password" id="loginFoundPasswordInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="password" id="loginPasswordLoginInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
-        <button type="submit" id="btnLoginConfirmed" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+        <button type="submit" id="btnCekNipp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
           LOGIN
-        </button>
-        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
-          ← Ganti NIPP
         </button>
       </form>
 
@@ -799,11 +770,10 @@
     // URL Web App Google Apps Script (Code.gs) — sama dengan CONFIG.APPS_SCRIPT_URL
     // yang dipakai di imo/assets/js/config.js, sheet "Pegawai" yang sama juga
     // dipakai sebagai database identitas Login (lihat Code.gs).
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUid_U1Qe3Fk0AvXOkbP0r9Tra03nCzRiHb2m8VJb0Dm5TskoF3TPqFtKwqs-K9nQ/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPd0fyxJpy8vWpzj9GBg1-1nENo9Nqq-SfjH3rpm55c1Iy23HiduSNzwYJSt-ikwY4/exec";
 
     // Data pegawai hasil "Cek NIPP" yang sedang menunggu konfirmasi LOGIN.
     let pendingNipp = "";
-    let pendingUser = null;
 
     // Helper pemanggilan backend Code.gs. Melempar Error jika backend
     // membalas { ok:false }, supaya pesan errornya bisa ditampilkan ke user.
@@ -1230,8 +1200,8 @@
       const modal = document.getElementById('loginModal');
       const card = document.getElementById('loginModalCard');
       document.getElementById('loginNippInput').value = '';
+      document.getElementById('loginPasswordLoginInput').value = '';
       pendingNipp = '';
-      pendingUser = null;
       showLoginStage('nipp');
       modal.classList.remove('opacity-0', 'pointer-events-none');
       card.classList.remove('scale-95');
@@ -1318,40 +1288,43 @@
       `;
     }
 
-    // ---- Tahap 1: Cek NIPP ke sheet Pegawai (via Code.gs action "cekNipp") ----
-    function handleCekNippSubmit(e) {
+    // ---- Tahap 1: NIPP + Password langsung -> verifikasi via Code.gs
+    // action "loginPegawai". Kalau NIPP belum terdaftar (pesan error persis
+    // "NIPP tidak ditemukan." dari loginPegawai), otomatis dialihkan ke
+    // form Pendaftaran — tanpa layar konfirmasi Nama/Jabatan/Stasiun
+    // terpisah seperti sebelumnya. ----
+    async function handleLoginSubmit(e) {
       e.preventDefault();
-      handleCekNipp();
-    }
 
-    async function handleCekNipp() {
       const nipp = document.getElementById('loginNippInput').value.trim();
-      if (!nipp) { showLoginError('NIPP wajib diisi.'); return; }
+      const password = document.getElementById('loginPasswordLoginInput').value;
 
+      if (!nipp) { showLoginError('NIPP wajib diisi.'); return; }
+      if (!password) { showLoginError('Password wajib diisi.'); return; }
+
+      pendingNipp = nipp;
       setLoginBusy(true);
       try {
-        const result = await callBackend({ action: 'cekNipp', nipp: nipp });
-        pendingNipp = nipp;
-        // "cekNipp" sudah menambah Counter di backend (lihat doPost di Code.gs)
-        // — sinkronkan widget "Telah Digunakan" sekarang juga, jangan tunggu
-        // polling berikutnya (bisa sampai 10 detik).
-        loadUsageCounter();
+        const data = await callBackend({
+          action: 'loginPegawai',
+          payload: { nipp: nipp, password: password },
+        });
+        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
 
-        if (result.found) {
-          // NIPP terdaftar -> tampilkan data yang ditemukan + tombol LOGIN.
-          pendingUser = {
-            nama: result.data.nama,
-            nipp: result.data.nipp || nipp,
-            jabatan: result.data.jabatan,
-            stasiun: result.data.stasiun,
-          };
-          document.getElementById('foundNama').innerText = pendingUser.nama;
-          document.getElementById('foundNipp').innerText = pendingUser.nipp;
-          document.getElementById('foundJabatan').innerText = pendingUser.jabatan;
-          document.getElementById('foundStasiun').innerText = pendingUser.stasiun;
-          document.getElementById('loginFoundPasswordInput').value = '';
-          showLoginStage('found');
-        } else {
+        applyLoggedInUI(user);
+        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        closeLoginModal();
+        document.getElementById('loginPasswordLoginInput').value = '';
+        showToast(`Selamat datang, ${user.nama}!`);
+        // "loginPegawai" TIDAK menambah Counter di backend (lihat
+        // COUNTER_EXCLUDED_ACTIONS di Code.gs), jadi laporkan pemakaian
+        // lewat action ringan "catatPemakaian", lalu sinkronkan widget
+        // "Telah Digunakan" begitu selesai.
+        callBackend({ action: 'catatPemakaian' })
+          .then(loadUsageCounter)
+          .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
+      } catch (err) {
+        if (err.message === 'NIPP tidak ditemukan.') {
           // NIPP belum terdaftar -> tampilkan form pendaftaran, NIPP sudah terisi otomatis.
           document.getElementById('loginNippReadonly').value = nipp;
           document.getElementById('loginNameInput').value = '';
@@ -1363,50 +1336,9 @@
           document.getElementById('loginPasswordInput').value = '';
           document.getElementById('loginPasswordConfirmInput').value = '';
           showLoginStage('daftar');
+        } else {
+          showLoginError('Gagal login: ' + err.message);
         }
-      } catch (err) {
-        showLoginError('Gagal memeriksa NIPP: ' + err.message);
-      } finally {
-        setLoginBusy(false);
-      }
-    }
-
-    // ---- Tahap 2A: NIPP ditemukan -> user memasukkan Password lalu LOGIN ----
-    async function handleLoginConfirmed(e) {
-      if (e) e.preventDefault();
-      if (!pendingUser) return;
-
-      const password = document.getElementById('loginFoundPasswordInput').value;
-      if (!password) {
-        showLoginError('Password wajib diisi.');
-        return;
-      }
-
-      setLoginBusy(true);
-      try {
-        // Verifikasi Password ke backend (action "loginPegawai" di Code.gs)
-        // — hasilnya dipakai sebagai identitas user aktif (bukan pendingUser
-        // hasil cekNipp), sama seperti alur pendaftaran.
-        const data = await callBackend({
-          action: 'loginPegawai',
-          payload: { nipp: pendingUser.nipp, password: password },
-        });
-        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
-
-        applyLoggedInUI(user);
-        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
-        closeLoginModal();
-        document.getElementById('loginFoundPasswordInput').value = '';
-        showToast(`Selamat datang, ${user.nama}!`);
-        // "loginPegawai" TIDAK menambah Counter di backend (lihat
-        // COUNTER_EXCLUDED_ACTIONS di Code.gs), jadi laporkan pemakaian
-        // lewat action ringan "catatPemakaian", lalu sinkronkan widget
-        // "Telah Digunakan" begitu selesai.
-        callBackend({ action: 'catatPemakaian' })
-          .then(loadUsageCounter)
-          .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
-      } catch (err) {
-        showLoginError('Gagal login: ' + err.message);
       } finally {
         setLoginBusy(false);
       }
@@ -1647,6 +1579,7 @@
     }
 
     function backToNippStage() {
+      document.getElementById('loginPasswordLoginInput').value = '';
       showLoginStage('nipp');
     }
 
@@ -1770,11 +1703,9 @@
 
     function showLoginStage(stage) {
       document.getElementById('loginStageNipp').classList.toggle('hidden', stage !== 'nipp');
-      document.getElementById('loginStageFound').classList.toggle('hidden', stage !== 'found');
       document.getElementById('loginStageDaftar').classList.toggle('hidden', stage !== 'daftar');
       document.getElementById('loginModalSubtitle').textContent =
-        stage === 'nipp' ? 'Masukkan NIPP untuk mencari data pegawai' :
-        stage === 'found' ? 'Masukkan Password untuk melanjutkan' :
+        stage === 'nipp' ? 'Masukkan NIPP dan Password untuk login' :
         'Lengkapi data untuk mendaftar';
       document.getElementById('loginError').classList.add('hidden');
     }
@@ -1787,7 +1718,6 @@
 
     function setLoginBusy(busy) {
       document.getElementById('btnCekNipp').disabled = busy;
-      document.getElementById('btnLoginConfirmed').disabled = busy;
       document.getElementById('btnDaftarDanLogin').disabled = busy;
     }
 
