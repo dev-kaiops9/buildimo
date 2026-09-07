@@ -495,18 +495,31 @@
       </div>
 
       <!-- ===== Widget khusus menu IMO (Per Hari & Per Bulan):
-           PDF Tersimpan — muncul otomatis begitu user login, berisi daftar
-           seluruh PDF serah terima milik user tersebut, terurut tanggal
-           termuda dulu lalu Dinas Pagi -> Siang -> Malam dalam tanggal
-           yang sama. Tidak tampil di menu Serah Terima PDF / PDF to A4,
-           yang menampilkan widget Kalender & Informasi Akun sebagai
+           "DATA STASIUN KEDUDUKAN" / "DATA STASIUN WAKILAN" — muncul
+           otomatis begitu user login, berisi daftar PDF serah terima milik
+           user tersebut, terurut tanggal termuda dulu lalu Dinas Pagi ->
+           Siang -> Malam dalam tanggal yang sama.
+           DIUBAH — dulu bernama statis "PDF Tersimpan" & selalu menampilkan
+           SEMUA baris (Kedudukan + Wakilan tercampur). Sekarang judul & isi
+           listnya mengikuti mode aktif (lihat savedPdfMode/setSavedPdfMode
+           di bawah): "DATA STASIUN KEDUDUKAN" -> hanya baris dengan
+           stasiunTempatWakilan KOSONG (perilaku list lama, sebelum ada
+           fitur Wakilan). "DATA STASIUN WAKILAN" -> hanya baris dengan
+           stasiunTempatWakilan TERISI (PDF yang tersimpan di sub-folder
+           Wakilan di Drive), plus badge nama stasiun wakilannya per kartu.
+           Di sub-menu Per Hari MAUPUN Per Bulan, mode ini otomatis
+           mengikuti tab mode yang dipilih di form masing-masing (dikirim
+           iframe lewat postMessage 'imoModeChanged' — lihat listener
+           'message' di bawah).
+           Tidak tampil di menu Serah Terima PDF / PDF to A4, yang
+           menampilkan widget Kalender & Informasi Akun sebagai
            gantinya. ===== -->
       <div id="toolRightWidgets" class="flex-1 min-h-0 flex flex-col">
         <div id="savedPdfWidget" class="hidden flex-col gap-3 p-5 bg-gradient-to-br from-indigo-50/90 to-slate-50 rounded-3xl border border-indigo-100 shadow-sm transition-all duration-300 flex-1 min-h-0">
           <div class="flex items-center justify-between pb-3 border-b border-indigo-100 shrink-0">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
-              <span class="text-xs font-bold text-slate-700 tracking-wider uppercase">PDF Tersimpan</span>
+              <span id="savedPdfWidgetTitle" class="text-xs font-bold text-slate-700 tracking-wider uppercase">DATA STASIUN KEDUDUKAN</span>
             </div>
             <span id="savedPdfCount" class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">0</span>
           </div>
@@ -550,7 +563,7 @@
       </p>
       <div class="mt-3 flex items-start gap-2 text-left text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
         <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
-        <span>File PDF di Google Drive dipindah ke Trash &amp; barisnya di sheet ikut terhapus. Tindakan ini tidak bisa dibatalkan dari sini.</span>
+        <span>File PDF akan Terhapus Permanen, Data tidak bisa dikembalikan setelah dihapus.</span>
       </div>
       <div class="mt-5 flex items-center justify-center gap-2">
         <button type="button" id="btnBatalHapusSavedPdf" class="px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 rounded-2xl transition">Batal</button>
@@ -605,18 +618,49 @@
 
       <div id="loginError" class="hidden mb-3 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></div>
 
-      <!-- ---- TAHAP 1: NIPP + Password -> langsung LOGIN ---- -->
-      <form id="loginStageNipp" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
+      <!-- ---- TAHAP 1: CEK NIPP ---- -->
+      <form id="loginStageNipp" onsubmit="handleCekNippSubmit(event)" class="space-y-3.5">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
           <input type="text" id="loginNippInput" inputmode="numeric" placeholder="Contoh: 1094881999" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-mono" />
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-          <input type="password" id="loginPasswordLoginInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
-        </div>
         <button type="submit" id="btnCekNipp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
           LOGIN
+        </button>
+      </form>
+
+      <!-- ---- TAHAP 2A: NIPP DITEMUKAN ---- -->
+      <!-- Dibuat <form> (bukan <div> biasa) + tombol LOGIN "type=submit" supaya
+           tombol Enter di keyboard bisa dipakai untuk login juga, tidak cuma
+           klik mouse/tap — sama seperti pola Tahap 1 & Tahap 2B. Tombol LOGIN
+           di-focus otomatis begitu tahap ini ditampilkan (lihat showLoginStage()),
+           supaya Enter langsung kena ke tombol ini walau tidak ada input teks
+           yang bisa difokus di tahap ini. -->
+      <form id="loginStageFound" onsubmit="handleLoginConfirmedSubmit(event)" class="hidden space-y-3.5">
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
+          <p class="text-xs font-bold text-emerald-700 mb-1">Data Pegawai Ditemukan</p>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Nama</span>
+            <span id="foundNama" class="font-bold text-slate-800 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">NIPP</span>
+            <span id="foundNipp" class="font-bold text-indigo-600 font-mono text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Jabatan</span>
+            <span id="foundJabatan" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Stasiun</span>
+            <span id="foundStasiun" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+        </div>
+        <button type="submit" id="btnLoginConfirmed" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          LOGIN
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Ganti NIPP
         </button>
       </form>
 
@@ -627,7 +671,7 @@
         </p>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-          <input type="text" id="loginNameInput" placeholder="Contoh: Christine Eva" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" id="loginNameInput" placeholder="Contoh: Arjuna Bhimasakti" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
@@ -649,25 +693,11 @@
           </div>
         </div>
         <div class="relative">
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Stasiun / Dipo</label>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Stasiun</label>
           <input type="text" id="loginStasiunInput" placeholder="Contoh: Glenmore atau GLM" required autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
           <div id="loginStasiunSuggest" class="hidden absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-48 overflow-y-auto"></div>
           <p id="loginStasiunPreview" class="hidden text-xs text-slate-400 mt-1 px-1"></p>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor WhatsApp Aktif</label>
-          <input type="tel" id="loginNoWaInput" inputmode="numeric" placeholder="Contoh: 081234567890" required autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-mono" />
-          <p class="text-[11px] text-slate-400 mt-1 px-1">Dipakai untuk verifikasi jika lupa password.</p>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-          <input type="password" id="loginPasswordInput" placeholder="Minimal 6 karakter" minlength="6" required autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Verifikasi Password</label>
-          <input type="password" id="loginPasswordConfirmInput" placeholder="Ulangi password" minlength="6" required autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
-        </div>
-
         <button type="submit" id="btnDaftarDanLogin" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
           Daftar dan Login
         </button>
@@ -774,6 +804,7 @@
 
     // Data pegawai hasil "Cek NIPP" yang sedang menunggu konfirmasi LOGIN.
     let pendingNipp = "";
+    let pendingUser = null;
 
     // Helper pemanggilan backend Code.gs. Melempar Error jika backend
     // membalas { ok:false }, supaya pesan errornya bisa ditampilkan ke user.
@@ -833,6 +864,29 @@
     let savedPdfAllList = [];
     let savedPdfCurrentUser = null; // { nipp, ... } — dipakai tombol hapus
 
+    // Mode aktif widget: 'kedudukan' (default) atau 'wakilan'. Menentukan
+    // judul widget ("DATA STASIUN KEDUDUKAN"/"DATA STASIUN WAKILAN") DAN
+    // subset savedPdfAllList yang ditampilkan (lihat applySavedPdfFilter).
+    // Diganti oleh:
+    //  - Listener 'message' (imoModeChanged) saat sub-menu Per Hari ATAU
+    //    Per Bulan aktif dan user ganti tab mode di form (atau form baru
+    //    dimuat).
+    //  - selectTab(), yang selalu reset ke 'kedudukan' dulu setiap masuk
+    //    salah satu sub-menu IMO — nilai sebenarnya segera menyusul lewat
+    //    postMessage begitu iframe-nya siap.
+    let savedPdfMode = 'kedudukan';
+
+    /** Ganti mode widget: perbarui judul, lalu render ulang list dari cache
+     *  yang sudah ada (tidak fetch ulang ke server — hanya re-filter). */
+    function setSavedPdfMode(mode) {
+      savedPdfMode = mode === 'wakilan' ? 'wakilan' : 'kedudukan';
+      const titleEl = document.getElementById('savedPdfWidgetTitle');
+      if (titleEl) {
+        titleEl.textContent = savedPdfMode === 'wakilan' ? 'DATA STASIUN WAKILAN' : 'DATA STASIUN KEDUDUKAN';
+      }
+      applySavedPdfFilter();
+    }
+
     function populateSavedPdfYearFilter(list) {
       const sel = document.getElementById('savedPdfFilterTahun');
       const prevValue = sel.value;
@@ -847,6 +901,13 @@
       const bulanVal = document.getElementById('savedPdfFilterBulan').value;
       const tahunVal = document.getElementById('savedPdfFilterTahun').value;
       const filtered = savedPdfAllList.filter((item) => {
+        // BARU — filter mode: stasiunTempatWakilan TERISI = baris mode
+        // Stasiun Tempat Wakilan, KOSONG = baris mode Stasiun Kedudukan
+        // (lihat SERAH_COLS.STASIUN_WAKILAN & cekPdfTersimpan di Code.gs).
+        const isWakilanItem = !!String(item.stasiunTempatWakilan || '').trim();
+        if (savedPdfMode === 'wakilan' && !isWakilanItem) return false;
+        if (savedPdfMode === 'kedudukan' && isWakilanItem) return false;
+
         const t = tanggalParts(item.tanggal);
         if (bulanVal && String(t.mm) !== bulanVal) return false;
         if (tahunVal && String(t.yyyy) !== tahunVal) return false;
@@ -872,13 +933,26 @@
         return;
       }
 
-      wrap.innerHTML = list.map((item) => `
+      wrap.innerHTML = list.map((item) => {
+        const isLibur = item.dinas === 'LIBUR';
+        const dinasBadgeClass = isLibur
+          ? 'bg-rose-100 text-rose-600'
+          : 'bg-indigo-100 text-indigo-700';
+        // BARU — badge nama stasiun tempat wakilan, hanya muncul saat mode
+        // widget = 'wakilan' (kartu mode Kedudukan tidak berubah tampilannya
+        // sama sekali dari sebelumnya). Berguna kalau user pernah mewakili
+        // di beberapa stasiun berbeda, supaya tiap kartu tetap bisa dibedakan.
+        const wakilanBadge = savedPdfMode === 'wakilan' && item.stasiunTempatWakilan
+          ? `<span class="text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full shrink-0 truncate max-w-[110px]" title="${escapeAttr_(item.stasiunTempatWakilan)}">${item.stasiunTempatWakilan}</span>`
+          : '';
+        return `
         <div class="flex items-center justify-between gap-2 bg-white rounded-2xl border border-slate-100 px-3 py-2.5 shadow-sm" data-file-url="${item.fileUrl ? escapeAttr_(item.fileUrl) : ''}">
           <div class="min-w-0">
             <p class="text-[11px] font-bold text-slate-700 font-mono truncate">${item.tanggal}</p>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full shrink-0">${item.dinas}</span>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span class="text-[9px] ${dinasBadgeClass} font-bold px-1.5 py-0.5 rounded-full shrink-0">${item.dinas}</span>
               <span class="text-[10px] text-slate-500 truncate">${item.jenisSerahTerima}</span>
+              ${wakilanBadge}
             </div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
@@ -890,7 +964,8 @@
               : `<span class="text-[10px] text-slate-300">Tidak ada</span>`}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       wireSavedPdfDeleteButtons();
     }
@@ -1022,7 +1097,7 @@
     // baru) supaya daftar di widget langsung ter-update tanpa perlu reload.
     window.refreshSavedPdfWidget = function () {
       try {
-        const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
         if (savedUser && savedUser.nipp) loadSavedPdfWidget(savedUser);
       } catch (err) { /* abaikan data sesi yang rusak */ }
     };
@@ -1200,8 +1275,8 @@
       const modal = document.getElementById('loginModal');
       const card = document.getElementById('loginModalCard');
       document.getElementById('loginNippInput').value = '';
-      document.getElementById('loginPasswordLoginInput').value = '';
       pendingNipp = '';
+      pendingUser = null;
       showLoginStage('nipp');
       modal.classList.remove('opacity-0', 'pointer-events-none');
       card.classList.remove('scale-95');
@@ -1247,6 +1322,28 @@
     // Terapkan data user ke UI (widget profil + badge pojok kanan atas).
     // Dipakai baik saat login baru maupun saat memulihkan sesi dari localStorage,
     // sehingga status login tetap tampil konsisten di semua menu (dashboard & 3 tool).
+    // BARU — setelah login (atau pendaftaran) berhasil, jika sub-menu
+    // "IMO - Per Hari" / "IMO - Per Bulan" sedang aktif DAN iframe-nya
+    // sudah pernah dimuat sebelumnya (mis. dibuka saat user belum login),
+    // muat ulang iframe tsb secara otomatis. form.js di dalamnya hanya
+    // membaca sesi login SEKALI saat halaman dimuat, jadi tanpa reload ini
+    // isinya akan tetap menganggap user belum login sampai halaman
+    // di-refresh manual. Dipanggil dari handleLoginConfirmed() &
+    // handleDaftarDanLogin() — tidak berpengaruh ke tab lain / iframe yang
+    // belum pernah dimuat (biarkan dimuat normal oleh selectTab()).
+    function refreshToolFrameAfterLogin() {
+      const toolFrame = document.getElementById('toolFrame');
+      if (!toolFrame || !isImoGroupTab(currentToolTabId)) return;
+      if (toolFrame.dataset.loaded !== currentToolTabId) return;
+      try {
+        toolFrame.contentWindow.location.reload();
+      } catch (err) {
+        // Fallback kalau akses contentWindow gagal (seharusnya tidak pernah
+        // terjadi karena same-origin) — muat ulang lewat src.
+        toolFrame.src = tabRoutes[currentToolTabId];
+      }
+    }
+
     function applyLoggedInUI(user) {
       loadSavedPdfWidget(user);
       applyProfileWidgetUI(user);
@@ -1288,43 +1385,39 @@
       `;
     }
 
-    // ---- Tahap 1: NIPP + Password langsung -> verifikasi via Code.gs
-    // action "loginPegawai". Kalau NIPP belum terdaftar (pesan error persis
-    // "NIPP tidak ditemukan." dari loginPegawai), otomatis dialihkan ke
-    // form Pendaftaran — tanpa layar konfirmasi Nama/Jabatan/Stasiun
-    // terpisah seperti sebelumnya. ----
-    async function handleLoginSubmit(e) {
+    // ---- Tahap 1: Cek NIPP ke sheet Pegawai (via Code.gs action "cekNipp") ----
+    function handleCekNippSubmit(e) {
       e.preventDefault();
+      handleCekNipp();
+    }
 
+    async function handleCekNipp() {
       const nipp = document.getElementById('loginNippInput').value.trim();
-      const password = document.getElementById('loginPasswordLoginInput').value;
-
       if (!nipp) { showLoginError('NIPP wajib diisi.'); return; }
-      if (!password) { showLoginError('Password wajib diisi.'); return; }
 
-      pendingNipp = nipp;
       setLoginBusy(true);
       try {
-        const data = await callBackend({
-          action: 'loginPegawai',
-          payload: { nipp: nipp, password: password },
-        });
-        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+        const result = await callBackend({ action: 'cekNipp', nipp: nipp });
+        pendingNipp = nipp;
+        // "cekNipp" sudah menambah Counter di backend (lihat doPost di Code.gs)
+        // — sinkronkan widget "Telah Digunakan" sekarang juga, jangan tunggu
+        // polling berikutnya (bisa sampai 10 detik).
+        loadUsageCounter();
 
-        applyLoggedInUI(user);
-        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
-        closeLoginModal();
-        document.getElementById('loginPasswordLoginInput').value = '';
-        showToast(`Selamat datang, ${user.nama}!`);
-        // "loginPegawai" TIDAK menambah Counter di backend (lihat
-        // COUNTER_EXCLUDED_ACTIONS di Code.gs), jadi laporkan pemakaian
-        // lewat action ringan "catatPemakaian", lalu sinkronkan widget
-        // "Telah Digunakan" begitu selesai.
-        callBackend({ action: 'catatPemakaian' })
-          .then(loadUsageCounter)
-          .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
-      } catch (err) {
-        if (err.message === 'NIPP tidak ditemukan.') {
+        if (result.found) {
+          // NIPP terdaftar -> tampilkan data yang ditemukan + tombol LOGIN.
+          pendingUser = {
+            nama: result.data.nama,
+            nipp: result.data.nipp || nipp,
+            jabatan: result.data.jabatan,
+            stasiun: result.data.stasiun,
+          };
+          document.getElementById('foundNama').innerText = pendingUser.nama;
+          document.getElementById('foundNipp').innerText = pendingUser.nipp;
+          document.getElementById('foundJabatan').innerText = pendingUser.jabatan;
+          document.getElementById('foundStasiun').innerText = pendingUser.stasiun;
+          showLoginStage('found');
+        } else {
           // NIPP belum terdaftar -> tampilkan form pendaftaran, NIPP sudah terisi otomatis.
           document.getElementById('loginNippReadonly').value = nipp;
           document.getElementById('loginNameInput').value = '';
@@ -1332,16 +1425,38 @@
           document.getElementById('loginStasiunInput').value = '';
           document.getElementById('loginStasiunPreview').classList.add('hidden');
           document.getElementById('loginStasiunSuggest').classList.add('hidden');
-          document.getElementById('loginNoWaInput').value = '';
-          document.getElementById('loginPasswordInput').value = '';
-          document.getElementById('loginPasswordConfirmInput').value = '';
           showLoginStage('daftar');
-        } else {
-          showLoginError('Gagal login: ' + err.message);
         }
+      } catch (err) {
+        showLoginError('Gagal memeriksa NIPP: ' + err.message);
       } finally {
         setLoginBusy(false);
       }
+    }
+
+    // ---- Tahap 2A: NIPP ditemukan -> submit form (klik tombol LOGIN ATAU
+    // tekan Enter, keduanya memicu event 'submit' yang sama). ----
+    function handleLoginConfirmedSubmit(e) {
+      e.preventDefault();
+      handleLoginConfirmed();
+    }
+
+    function handleLoginConfirmed() {
+      if (!pendingUser) return;
+      applyLoggedInUI(pendingUser);
+      sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(pendingUser));
+      refreshToolFrameAfterLogin();
+      closeLoginModal();
+      showToast(`Selamat datang, ${pendingUser.nama}!`);
+
+      // Klik LOGIN ini murni proses di browser (tidak memanggil backend sama
+      // sekali), jadi Counter di sheet TIDAK akan bertambah dengan sendirinya
+      // seperti action lain. Laporkan pemakaian lewat action ringan
+      // "catatPemakaian" (lihat Code.gs) supaya tetap ikut ke-counter, lalu
+      // sinkronkan widget "Telah Digunakan" begitu selesai.
+      callBackend({ action: 'catatPemakaian' })
+        .then(loadUsageCounter)
+        .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
     }
 
     // -----------------------------------------------------------------------
@@ -1455,14 +1570,22 @@
     // paksaan harus pilih dari daftar.
     // -----------------------------------------------------------------------
     let daftarStasiunCache = [];
+    // true kalau getDaftarStasiun sudah PERNAH berhasil dimuat minimal
+    // sekali. Dipakai supaya validasi "Stasiun Belum Terdaftar" di bawah
+    // TIDAK ikut menolak pendaftaran hanya gara-gara sheet MasterStasiun
+    // gagal dimuat (mis. jaringan lambat) — kalau daftarnya sendiri belum
+    // berhasil diambil, validasi dilewati (fail-open), bukan fail-closed.
+    let daftarStasiunLoaded = false;
 
     async function loadDaftarStasiun() {
       try {
         const data = await callBackend({ action: 'getDaftarStasiun' });
         daftarStasiunCache = Array.isArray(data) ? data : [];
+        daftarStasiunLoaded = true;
       } catch (err) {
         console.warn('Gagal memuat daftar stasiun:', err.message);
         daftarStasiunCache = [];
+        daftarStasiunLoaded = false;
       }
     }
 
@@ -1472,6 +1595,47 @@
       return daftarStasiunCache
         .filter((s) => (s.nama || '').toLowerCase().includes(q) || (s.kode || '').toLowerCase().includes(q))
         .slice(0, 8);
+    }
+
+    // -----------------------------------------------------------------------
+    // Validasi Stasiun terhadap sheet MasterStasiun. Pencocokan dilakukan
+    // dengan normalisasi YANG SAMA dengan normalizeStasiunPreview() supaya
+    // "stasiun kalisetail", "KALISETAIL", dan "Kalisetail" semuanya dianggap
+    // cocok dengan baris MasterStasiun "Kalisetail" — atau lewat Kode
+    // (mis. mengetik "GLM" tetap dianggap valid kalau ada di MasterStasiun).
+    // Mengembalikan objek stasiun yang cocok (persis dari MasterStasiun)
+    // kalau ketemu, atau null kalau tidak ada.
+    // -----------------------------------------------------------------------
+    function cariStasiunTerdaftar(inputStasiun) {
+      const namaNormInput = normalizeStasiunPreview(inputStasiun);
+      const kodeInput = String(inputStasiun || '').trim().toLowerCase();
+      if (!namaNormInput) return null;
+      return daftarStasiunCache.find((s) => {
+        const namaCocok = normalizeStasiunPreview(s.nama) === namaNormInput;
+        const kodeCocok = s.kode && String(s.kode).trim().toLowerCase() === kodeInput;
+        return namaCocok || kodeCocok;
+      }) || null;
+    }
+
+    // Pastikan daftarStasiunCache sudah berhasil dimuat sebelum divalidasi
+    // (coba muat ulang sekali kalau sebelumnya gagal/belum selesai), lalu
+    // periksa apakah stasiun yang diketik user ada di MasterStasiun.
+    // Mengembalikan '' kalau valid (atau kalau daftar gagal dimuat sama
+    // sekali — fail-open supaya user tidak terkunci gara-gara error jaringan),
+    // atau pesan error kalau stasiun jelas TIDAK ada di daftar.
+    async function validasiStasiunTerdaftar(inputStasiun) {
+      if (!daftarStasiunLoaded) {
+        await loadDaftarStasiun();
+      }
+      if (!daftarStasiunLoaded || !daftarStasiunCache.length) {
+        // Daftar MasterStasiun belum/tidak berhasil dimuat -> jangan
+        // blokir pendaftaran, biarkan backend yang jadi validasi terakhir.
+        return '';
+      }
+      if (!cariStasiunTerdaftar(inputStasiun)) {
+        return 'Stasiun Belum Terdaftar. Ketik sebagian nama/kode untuk melihat saran, lalu pilih salah satu dari daftar.';
+      }
+      return '';
     }
 
     function wireStasiunAutocomplete(inputId, suggestId, previewId) {
@@ -1527,24 +1691,24 @@
       const nama = document.getElementById('loginNameInput').value.trim();
       const jabatan = getJabatanValue('loginJabatanSelect', 'loginJabatanLainnyaInput');
       const stasiun = document.getElementById('loginStasiunInput').value.trim();
-      const noWa = document.getElementById('loginNoWaInput').value.trim();
-      const password = document.getElementById('loginPasswordInput').value;
-      const konfirmasiPassword = document.getElementById('loginPasswordConfirmInput').value;
 
-      if (!nama || !jabatan || !stasiun || !noWa || !password || !konfirmasiPassword) {
+      if (!nama || !jabatan || !stasiun) {
         showLoginError('Lengkapi semua kolom pendaftaran terlebih dahulu.');
         return;
       }
-      if (password.length < 6) {
-        showLoginError('Password minimal 6 karakter.');
-        return;
-      }
-      if (password !== konfirmasiPassword) {
-        showLoginError('Verifikasi Password tidak sama dengan Password.');
+
+      // Tolak pendaftaran kalau nama Stasiun yang diketik tidak ada di
+      // sheet MasterStasiun (dicocokkan lewat Nama ATAU Kode, lihat
+      // cariStasiunTerdaftar()). Mencegah data Stasiun ngawur/typo masuk
+      // ke sheet Pegawai sejak awal, bukan cuma di-normalize saja.
+      setLoginBusy(true);
+      const pesanErrorStasiun = await validasiStasiunTerdaftar(stasiun);
+      if (pesanErrorStasiun) {
+        showLoginError(pesanErrorStasiun);
+        setLoginBusy(false);
         return;
       }
 
-      setLoginBusy(true);
       try {
         const data = await callBackend({
           action: 'daftarPegawai',
@@ -1553,9 +1717,6 @@
             nipp: pendingNipp,
             jabatan: jabatan,
             stasiun: stasiun,
-            noWa: noWa,
-            password: password,
-            konfirmasiPassword: konfirmasiPassword,
           },
         });
         // Backend mengembalikan nama yang SUDAH dinormalisasi (Title Case) —
@@ -1563,10 +1724,9 @@
         const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
 
         applyLoggedInUI(user);
-        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        refreshToolFrameAfterLogin();
         closeLoginModal();
-        document.getElementById('loginPasswordInput').value = '';
-        document.getElementById('loginPasswordConfirmInput').value = '';
         showToast(`Pendaftaran berhasil. Selamat datang, ${user.nama}!`);
         // "daftarPegawai" sudah menambah Counter di backend — sinkronkan
         // widget sekarang juga.
@@ -1579,7 +1739,6 @@
     }
 
     function backToNippStage() {
-      document.getElementById('loginPasswordLoginInput').value = '';
       showLoginStage('nipp');
     }
 
@@ -1635,7 +1794,7 @@
     // field ke data user yang sedang login), lalu kembali ke MODE LIHAT.
     function cancelProfilEdit() {
       try {
-        const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
         populateProfilForm(savedUser);
       } catch (err) {
         populateProfilForm(null);
@@ -1661,7 +1820,7 @@
     async function handleSaveProfil(e) {
       e.preventDefault();
 
-      const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY) || 'null');
+      const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY) || 'null');
       if (!savedUser || !savedUser.nipp) {
         showProfilError('Sesi login tidak ditemukan. Silakan login ulang.');
         return;
@@ -1689,7 +1848,7 @@
         // seperti alur pendaftaran.
         const updatedUser = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
 
-        localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(updatedUser));
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(updatedUser));
         applyLoggedInUI(updatedUser);
         populateProfilForm(updatedUser);
         setProfilEditMode(false);
@@ -1703,11 +1862,23 @@
 
     function showLoginStage(stage) {
       document.getElementById('loginStageNipp').classList.toggle('hidden', stage !== 'nipp');
+      document.getElementById('loginStageFound').classList.toggle('hidden', stage !== 'found');
       document.getElementById('loginStageDaftar').classList.toggle('hidden', stage !== 'daftar');
       document.getElementById('loginModalSubtitle').textContent =
-        stage === 'nipp' ? 'Masukkan NIPP dan Password untuk login' :
+        stage === 'nipp' ? 'Masukkan NIPP untuk mencari data pegawai' :
+        stage === 'found' ? 'Periksa data pegawai di bawah ini' :
         'Lengkapi data untuk mendaftar';
       document.getElementById('loginError').classList.add('hidden');
+
+      // Auto-focus tombol LOGIN di Tahap 2A supaya tombol Enter langsung
+      // berfungsi begitu data pegawai ditemukan (tahap ini tidak punya
+      // input teks yang bisa difokus, jadi tombolnya sendiri yang difokus).
+      if (stage === 'found') {
+        setTimeout(() => {
+          const btn = document.getElementById('btnLoginConfirmed');
+          if (btn) btn.focus();
+        }, 0);
+      }
     }
 
     function showLoginError(msg) {
@@ -1726,9 +1897,13 @@
       const navProfil = document.getElementById('nav-profil');
       if (navProfil) navProfil.classList.add('hidden');
 
-      // Kalau menu "Profil" sedang aktif saat logout, jangan biarkan halaman
-      // kosong tanpa akses — pindahkan ke Dashboard.
-      if (document.getElementById('profilView') && !document.getElementById('profilView').classList.contains('hidden')) {
+      // Kalau menu "Profil" ATAU salah satu sub-menu IMO (Per Hari/Per Bulan
+      // — keduanya butuh login) sedang aktif saat logout, jangan biarkan
+      // halaman kosong tanpa akses — pindahkan ke Dashboard. selectTab()
+      // otomatis menutup sub-menu IMO di sidebar saat pindah ke tab lain,
+      // jadi menu ikut tertutup tanpa perlu logika tambahan.
+      const profilAktif = document.getElementById('profilView') && !document.getElementById('profilView').classList.contains('hidden');
+      if (profilAktif || isImoGroupTab(currentToolTabId)) {
         selectTab('dashboard');
       }
 
@@ -1757,7 +1932,7 @@
         </button>
       `;
 
-      localStorage.removeItem(LOGIN_STORAGE_KEY);
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
       showToast('Anda telah keluar dari akun.');
     }
 
@@ -1773,6 +1948,11 @@
       return tabId === 'imo-per-hari' || tabId === 'imo-per-bulan';
     }
 
+    // BARU — dilacak supaya listener 'message' (imoModeChanged) tahu apakah
+    // sub-menu Per Hari sedang aktif sebelum menerapkan sinyal ganti mode
+    // dari iframe-nya (lihat window.addEventListener('message', ...)).
+    let currentToolTabId = null;
+
     function selectTab(tabId) {
       // Kompatibilitas: sesi lama yang tersimpan di localStorage dengan tab "imo"
       // diarahkan otomatis ke sub-menu default "Per Hari".
@@ -1784,7 +1964,7 @@
       if (tabId === 'profil') {
         let hasSession = false;
         try {
-          const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+          const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
           hasSession = !!(savedUser && savedUser.nipp);
         } catch (err) { /* abaikan data sesi yang rusak */ }
         if (!hasSession) tabId = 'dashboard';
@@ -1832,6 +2012,16 @@
       pageTitle.textContent = tabTitles[tabId] || 'Tools';
       updateRightWidgetsVisibility(tabId);
 
+      // BARU — reset default mode widget "DATA STASIUN KEDUDUKAN/WAKILAN"
+      // setiap kali (baru) masuk salah satu sub-menu IMO. Nilai
+      // sebenarnya akan segera menyusul lewat postMessage 'imoModeChanged'
+      // begitu iframe-nya (Per Hari MAUPUN Per Bulan, keduanya sekarang
+      // punya tab mode sendiri) selesai dimuat/user ganti tab di form.
+      // Tidak dipanggil untuk tab lain supaya tidak mengubah apa pun di
+      // luar 2 sub-menu IMO.
+      currentToolTabId = tabId;
+      if (isImoGroupTab(tabId)) setSavedPdfMode('kedudukan');
+
       // Sembunyikan semua view dulu, lalu tampilkan yang sesuai tab aktif.
       dashboardView.classList.add('hidden');
       toolView.classList.add('hidden');
@@ -1867,7 +2057,7 @@
         // Selalu isi ulang form dengan data user AKTIF (bukan cache lama)
         // dan mulai dari MODE LIHAT setiap kali menu ini dibuka.
         try {
-          const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+          const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
           populateProfilForm(savedUser);
         } catch (err) {
           populateProfilForm(null);
@@ -1878,7 +2068,7 @@
         headerActions.classList.remove('hidden');
       }
 
-      localStorage.setItem(TAB_STORAGE_KEY, tabId);
+      sessionStorage.setItem(TAB_STORAGE_KEY, tabId);
     }
 
     // Salin nomor WhatsApp developer ke clipboard (dari menu About | Data Backup)
@@ -1944,13 +2134,13 @@
       const valueEl = document.getElementById('usageCounterValue');
       const dateEl = document.getElementById('usageCounterDate');
 
-      const BULAN_INDO = [
-        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-        "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-      ];
-      const now = new Date();
-      const tanggalHariIni = `${String(now.getDate()).padStart(2, '0')} ${BULAN_INDO[now.getMonth()]} ${now.getFullYear()}`;
-      if (dateEl) dateEl.innerText = `per ${tanggalHariIni}`;
+      // Tanggal ini SENGAJA di-fix (bukan tanggal hari ini / new Date()),
+      // karena penghitungan counter di sheet "Counter" sudah berjalan
+      // terhitung sejak web ini mulai dipakai, yaitu 01 September 2026.
+      // Kalau nanti mau reset/mulai hitung ulang dari tanggal lain, cukup
+      // ubah string di bawah ini.
+      const USAGE_COUNTER_SINCE = "01 September 2026";
+      if (dateEl) dateEl.innerText = `per ${USAGE_COUNTER_SINCE}`;
 
       try {
         const data = await callBackend({ action: 'getCounter' });
@@ -1984,9 +2174,22 @@
     // Jalur tambahan real-time: jika halaman tool di dalam iframe mengirim
     // window.parent.postMessage({ type: 'usageCounterUpdated' }, '*') setelah
     // sebuah proses selesai, widget langsung sinkron tanpa menunggu polling.
+    //
+    // BARU — 'imoModeChanged' dikirim oleh imo/imo/index.html (form Per
+    // Hari) MAUPUN imo/imo/per-bulan.html (Per Bulan) setiap kali tab mode
+    // Stasiun Kedudukan/Stasiun Tempat Wakilan diklik (dan sekali otomatis
+    // saat iframe itu pertama kali dimuat). Dipakai untuk menyinkronkan
+    // judul & isi widget sidebar kanan ("DATA STASIUN KEDUDUKAN" / "DATA
+    // STASIUN WAKILAN") — lihat setSavedPdfMode(). Diproses selama salah
+    // satu dari 2 sub-menu IMO yang sedang aktif (isImoGroupTab), supaya
+    // pesan basi dari iframe lama tidak menimpa widget kalau user sudah
+    // keburu pindah ke menu lain di luar grup IMO.
     window.addEventListener('message', (event) => {
-      if (event && event.data && event.data.type === 'usageCounterUpdated') {
+      if (!event || !event.data) return;
+      if (event.data.type === 'usageCounterUpdated') {
         loadUsageCounter();
+      } else if (event.data.type === 'imoModeChanged') {
+        if (isImoGroupTab(currentToolTabId)) setSavedPdfMode(event.data.mode);
       }
     });
 
@@ -2091,14 +2294,14 @@
       // Pulihkan sesi login (jika ada) supaya user yang sudah login tetap
       // terlihat login di semua menu, termasuk setelah refresh halaman.
       try {
-        const savedUser = JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY));
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
         if (savedUser && savedUser.nama) {
           applyLoggedInUI(savedUser);
         }
       } catch (err) { /* abaikan data sesi yang rusak */ }
 
       // Pulihkan menu terakhir yang aktif.
-      const savedTab = localStorage.getItem(TAB_STORAGE_KEY) || 'dashboard';
+      const savedTab = sessionStorage.getItem(TAB_STORAGE_KEY) || 'dashboard';
       selectTab(savedTab);
     });
   </script>

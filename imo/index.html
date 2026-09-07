@@ -179,7 +179,6 @@
     </button>
     <button type="button" class="mode-switcher__tab" id="modeTabWakilan" data-mode="wakilan" role="tab" aria-selected="false">
       Stasiun Tempat Wakilan
-      <span class="mode-switcher__badge">SEGERA</span>
     </button>
   </div>
 
@@ -215,6 +214,27 @@
       </div>
       <p class="panel__hint">Tentukan jadwal dan jenis serah terima yang dilakukan.</p>
 
+      <!-- BARU — hanya tampil saat mode "Stasiun Tempat Wakilan" (lihat
+           Form.setMode di form.js). Disembunyikan lewat class "hidden",
+           sama seperti pola fieldDinasLainnya di bawah. -->
+      <div class="field-row hidden" id="fieldRowWakilan">
+        <div class="field">
+          <label class="field__label" for="stasiunTempatWakilan">Stasiun Tempat Wakilan <span class="req">*</span></label>
+          <div class="field__control">
+            <input type="text" id="stasiunTempatWakilan" class="input" placeholder="Contoh: Glenmore atau GLM" autocomplete="off" />
+            <div id="stasiunTempatWakilanSuggest" class="hidden" style="position:absolute; left:0; right:0; z-index:20; margin-top:4px; background:#fff; border:1.5px solid var(--border); border-radius:12px; box-shadow:0 8px 24px rgba(15,23,42,0.12); max-height:192px; overflow-y:auto;"></div>
+          </div>
+          <div class="field__error" id="err-stasiunTempatWakilan">Stasiun Tempat Wakilan wajib dipilih dari daftar.</div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="wakilan">Wakilan <span class="req">*</span></label>
+          <select id="wakilan" class="select">
+            <option value="">Pilih wakilan</option>
+          </select>
+          <div class="field__error" id="err-wakilan">Wakilan wajib dipilih.</div>
+        </div>
+      </div>
+
       <div class="field-row">
         <div class="field">
           <label class="field__label" for="dinas">Dinas <span class="req">*</span></label>
@@ -237,7 +257,11 @@
         <div class="field__error" id="err-dinasLainnya">Isi Dinas/Kegiatan wajib diisi.</div>
       </div>
 
-      <div class="field">
+      <!-- BARU — disembunyikan lewat class "hidden" saat jabatan user (dari
+           sesi login) adalah PLR/PRS/PJL (mode Kedudukan), atau saat mode
+           Wakilan dan jabatan user BUKAN PPKA. Lihat
+           Form._refreshJenisSerahTerimaState di form.js. -->
+      <div class="field" id="fieldJenisSerahTerima">
         <label class="field__label" for="jenisSerahTerima">Jenis Serah Terima <span class="req">*</span></label>
         <select id="jenisSerahTerima" class="select">
           <option value="">Pilih jenis serah terima</option>
@@ -258,19 +282,60 @@
           <span class="panel__eyebrow">Langkah 2 dari 3</span>
           <h2 class="panel__title">Unggah Foto</h2>
         </div>
+        <!-- BARU — ringkasan Dinas + Tanggal yang dipilih di Langkah 1,
+             ditampilkan ulang di sini supaya user tidak perlu balik ke
+             Langkah 1 untuk mengecek. Diisi & di-refresh oleh
+             updateDinasSummaryBadge() di main.js setiap kali Langkah 2
+             ditampilkan. Berlaku sama untuk mode Stasiun Kedudukan
+             maupun Stasiun Tempat Wakilan (form yang sama persis). -->
+        <span class="dinas-summary-badge hidden" id="dinasSummaryBadge"></span>
       </div>
       <p class="panel__hint">Unggah bukti serah terima dan dokumentasi kegiatan.</p>
 
+      <!-- Muncul hanya saat Jenis Serah Terima = "Stasiun Buka" (bekas
+           "Serah Terima Dinasan" — 1 foto). Lihat Form._applyUploadVisibility
+           di form.js. -->
       <div class="field" id="fieldFotoSerahTerima">
         <label class="field__label" id="labelFotoSerahTerima">Foto Serah Terima <span class="req">*</span></label>
         <div class="dropzone" id="dzSerahTerima" tabindex="0" role="button" aria-describedby="dzSerahTerimaHint">
           <div class="dropzone__icon">↑</div>
           <div class="dropzone__text">Tarik &amp; lepas foto/PDF di sini, atau klik untuk pilih</div>
-          <div class="dropzone__hint" id="dzSerahTerimaHint">JPG / PNG, atau PDF 2 halaman (otomatis dikonversi jadi JPG 450 DPI), maks. 15MB</div>
+          <div class="dropzone__hint" id="dzSerahTerimaHint">JPG / PNG, atau PDF 2 halaman (otomatis dikonversi jadi JPG 450 DPI), maks. 4MB</div>
         </div>
         <input type="file" id="fileSerahTerima" accept="image/*,application/pdf" class="hidden" />
         <div class="thumb-row" id="thumbSerahTerima"></div>
         <div class="field__error" id="err-fotoSerahTerima">Foto serah terima wajib diunggah.</div>
+      </div>
+
+      <!-- BARU — muncul hanya saat Jenis Serah Terima = "Stasiun Tutup"
+           (gabungan bekas "Awal Dinas" + "Akhir Dinas" — 2 foto sekaligus,
+           keduanya wajib). Lihat Form._applyUploadVisibility di form.js. -->
+      <div class="field hidden" id="fieldFotoStasiunTutup">
+        <div class="field__label" style="margin-bottom:10px;">Serah Terima <span class="req">*</span></div>
+
+        <div style="margin-bottom:18px;">
+          <label class="field__label" for="fileAwalDinas">1. Awal Dinas <span class="req">*</span></label>
+          <div class="dropzone" id="dzAwalDinas" tabindex="0" role="button" aria-describedby="dzAwalDinasHint">
+            <div class="dropzone__icon">↑</div>
+            <div class="dropzone__text">Tarik &amp; lepas foto/PDF di sini, atau klik untuk pilih</div>
+            <div class="dropzone__hint" id="dzAwalDinasHint">JPG / PNG, atau PDF 2 halaman (otomatis dikonversi jadi JPG 450 DPI), maks. 4MB</div>
+          </div>
+          <input type="file" id="fileAwalDinas" accept="image/*,application/pdf" class="hidden" />
+          <div class="thumb-row" id="thumbAwalDinas"></div>
+          <div class="field__error" id="err-fotoAwalDinas">Foto Awal Dinas wajib diunggah.</div>
+        </div>
+
+        <div>
+          <label class="field__label" for="fileAkhirDinas">2. Akhir Dinas <span class="req">*</span></label>
+          <div class="dropzone" id="dzAkhirDinas" tabindex="0" role="button" aria-describedby="dzAkhirDinasHint">
+            <div class="dropzone__icon">↑</div>
+            <div class="dropzone__text">Tarik &amp; lepas foto/PDF di sini, atau klik untuk pilih</div>
+            <div class="dropzone__hint" id="dzAkhirDinasHint">JPG / PNG, atau PDF 2 halaman (otomatis dikonversi jadi JPG 450 DPI), maks. 4MB</div>
+          </div>
+          <input type="file" id="fileAkhirDinas" accept="image/*,application/pdf" class="hidden" />
+          <div class="thumb-row" id="thumbAkhirDinas"></div>
+          <div class="field__error" id="err-fotoAkhirDinas">Foto Akhir Dinas wajib diunggah.</div>
+        </div>
       </div>
 
       <div class="field" id="fieldFotoDokumentasi">
@@ -312,17 +377,9 @@
   </main>
 
   </div>
-  <!-- /modeContentKedudukan -->
-
-  <!-- ==================== MODE: STASIUN TEMPAT WAKILAN ====================
-       Form untuk mode ini belum dibuat — sengaja hanya placeholder dulu. -->
-  <div class="hidden" id="modeContentWakilan">
-    <div class="mode-placeholder">
-      <div class="mode-placeholder__icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-      <div class="mode-placeholder__title">Masih Tahap Pengembangan</div>
-      <div class="mode-placeholder__text">Form untuk mode Stasiun Tempat Wakilan sedang disiapkan. Silakan gunakan mode Stasiun Kedudukan untuk saat ini.</div>
-    </div>
-  </div>
+  <!-- /modeContentKedudukan — sekarang dipakai BERSAMA oleh kedua mode
+       (Kedudukan & Wakilan reuse form yang sama persis; lihat Form.setMode
+       di form.js untuk field tambahan yang muncul/hilang sesuai mode). -->
 
   </div>
 </div>
@@ -332,7 +389,7 @@
   <div class="doc">
     <div class="doc__head">
       <span class="panel__eyebrow">Periksa sebelum disimpan — tampilan ini sama persis dengan hasil PDF</span>
-      <h2>Preview Dokumen Serah Terima</h2>
+      <h2>Preview Dokumen IMO Per Hari</h2>
     </div>
     <div class="doc__body">
       <!-- Diisi dinamis oleh preview.js: tabel ini PERSIS sama dengan
@@ -350,6 +407,35 @@
 <div class="busy-overlay" id="busyOverlay">
   <div class="spinner"></div>
   <div class="busy-overlay__text" id="busyText">MEMPROSES…</div>
+</div>
+
+<!-- ==================== POPUP TANGGAL SUDAH ADA ====================
+     Muncul ketika user menekan "Lanjut →" di Langkah 1 (Data Dinas)
+     tapi tanggal yang dipilih sudah punya data tersimpan di sheet
+     SerahTerima (dicek lewat action "cekPdfTersimpan" — lihat
+     Form.checkTanggalDuplikat di form.js & wireStepNavigation di
+     main.js). Reuse style popup "danger" yang sudah ada (dipakai juga
+     untuk konfirmasi hapus PDF Tersimpan) supaya konsisten. -->
+<div class="overlay overlay--warning" id="duplikatTanggalOverlay" aria-hidden="true">
+  <div class="doc doc--danger doc--warning" style="max-width: 440px;">
+    <div class="doc--danger__icon">
+      <i class="fa-solid fa-calendar-xmark"></i>
+    </div>
+    <div class="doc__body" style="padding-top: 8px; text-align: center;">
+      <h2 class="doc--danger__title">Tanggal Sudah Ada</h2>
+      <p class="doc--danger__desc">
+        Data dinasan untuk tanggal <strong id="duplikatTanggalValue">-</strong>
+        sudah tersimpan sebelumnya.
+      </p>
+      <div class="doc--danger__warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Pilih tanggal lain, atau hapus dulu data lama pada sidebar kanan jika data ini memang perlu diganti.</span>
+      </div>
+    </div>
+    <div class="doc__foot" style="border-top: none; justify-content: center; padding-top: 4px;">
+      <button type="button" class="btn btn--warning" id="btnTutupDuplikatTanggal">Mengerti</button>
+    </div>
+  </div>
 </div>
 
 <!-- ==================== TOASTS ==================== -->
@@ -371,30 +457,40 @@
 <script src="assets/js/main.js"></script>
 
 <!-- ==================== MODE SWITCHER SCRIPT ====================
-     Toggle tampilan antara mode "Stasiun Kedudukan" (form yang sudah
-     ada) dan "Stasiun Tempat Wakilan" (placeholder). Berdiri sendiri,
-     tidak menyentuh logic form.js/main.js lain. -->
+     Toggle tab aktif + delegasikan ke Form.setMode() (form.js) yang
+     menampilkan/menyembunyikan field tambahan (Stasiun Tempat Wakilan,
+     Wakilan) di Langkah 1. Form Kedudukan sendiri tidak digandakan. -->
 <script>
   (function () {
     var tabKedudukan = document.getElementById('modeTabKedudukan');
     var tabWakilan = document.getElementById('modeTabWakilan');
-    var contentKedudukan = document.getElementById('modeContentKedudukan');
-    var contentWakilan = document.getElementById('modeContentWakilan');
 
     function setMode(mode) {
       var isKedudukan = mode === 'kedudukan';
-
       tabKedudukan.classList.toggle('is-active', isKedudukan);
       tabWakilan.classList.toggle('is-active', !isKedudukan);
       tabKedudukan.setAttribute('aria-selected', String(isKedudukan));
       tabWakilan.setAttribute('aria-selected', String(!isKedudukan));
+      if (typeof Form !== 'undefined' && Form.setMode) Form.setMode(mode);
 
-      contentKedudukan.classList.toggle('hidden', !isKedudukan);
-      contentWakilan.classList.toggle('hidden', isKedudukan);
+      // BARU — beri tahu dashboard (parent, imo/index.html) supaya widget
+      // sidebar kanan ("DATA STASIUN KEDUDUKAN" / "DATA STASIUN WAKILAN")
+      // ikut berganti judul & isi list-nya. Dibungkus try/catch karena
+      // window.parent bisa melempar error kalau halaman ini kebetulan
+      // dibuka langsung (bukan di dalam iframe dashboard) — pesan itu
+      // aman diabaikan, tidak memengaruhi fungsi form sama sekali.
+      try {
+        window.parent.postMessage({ type: 'imoModeChanged', mode: mode }, '*');
+      } catch (e) { /* diakses di luar iframe dashboard — abaikan */ }
     }
 
     tabKedudukan.addEventListener('click', function () { setMode('kedudukan'); });
     tabWakilan.addEventListener('click', function () { setMode('wakilan'); });
+
+    // BARU — kirim juga sekali saat halaman form ini pertama kali dimuat
+    // (bukan hanya saat user klik tab), supaya dashboard langsung tahu
+    // mode default ("kedudukan") sejak awal tanpa perlu interaksi apa pun.
+    setMode('kedudukan');
   })();
 </script>
 </body>

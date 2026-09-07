@@ -46,10 +46,17 @@ const DINAS_ORDER = { "Pagi": 0, "Siang": 1, "Malam": 2 };
  * Susun nama file rekap bulanan: (BULAN)_STA (STASIUN)_(NAMA)_(JABATAN)_(NIPP).pdf
  * Contoh: AGUSTUS_STA GLENMORE_BUDI SANTOSO_PPKA_69123.pdf
  * Semua bagian teks (bulan/stasiun/nama/jabatan) diseragamkan ke huruf besar.
+ *
+ * BARU — parameter opsional `stasiunOverride`: dipakai saat mode
+ * "Stasiun Tempat Wakilan" supaya nama file memakai stasiun yang dipilih
+ * di dropdown Stasiun Tempat Wakilan (BulananMode.stasiunWakilan), BUKAN
+ * stasiun kedudukan asli user (user.stasiun). Kalau kosong/undefined
+ * (mode Kedudukan), perilaku persis seperti sebelumnya (pakai user.stasiun).
  */
-function buildNamaFileBulanan_(bulanNama, user) {
+function buildNamaFileBulanan_(bulanNama, user, stasiunOverride) {
   const up = (v) => String(v || "").trim().toUpperCase();
-  return `${up(bulanNama)}_STA ${up(user.stasiun)}_${up(user.nama)}_${up(user.jabatan)}_${up(user.nipp)}.pdf`;
+  const stasiunFile = String(stasiunOverride || "").trim() || user.stasiun;
+  return `${up(bulanNama)}_STA ${up(stasiunFile)}_${up(user.nama)}_${up(user.jabatan)}_${up(user.nipp)}.pdf`;
 }
 
 /**
@@ -157,8 +164,8 @@ const Session = {
   _read() {
     try {
       const raw = window.parent && window.parent !== window
-        ? window.parent.localStorage.getItem(SESSION_STORAGE_KEY)
-        : localStorage.getItem(SESSION_STORAGE_KEY);
+        ? window.parent.sessionStorage.getItem(SESSION_STORAGE_KEY)
+        : sessionStorage.getItem(SESSION_STORAGE_KEY);
       const user = JSON.parse(raw);
       if (user && user.nama && user.nipp) return user;
     } catch (err) { /* sesi rusak -> anggap belum login */ }
@@ -476,6 +483,141 @@ const MonthYear = {
 };
 
 // ---------------------------------------------------------------------
+// BARU — Mode "Stasiun Kedudukan" / "Stasiun Tempat Wakilan" (mirip
+// Form.setMode di form.js milik menu Per Hari, versi ringkas khusus
+// Per Bulan). Mode "Stasiun Tempat Wakilan" HANYA menambah 1 dropdown
+// combobox (Stasiun Tempat Wakilan) di Cover IMO — dropdown ini BUKAN
+// input data baru, murni FILTER untuk memilih PDF harian Wakilan (dari
+// menu Per Hari) mana yang mau digabungkan jadi rekap bulanan.
+// ---------------------------------------------------------------------
+const BulananMode = {
+  mode: "kedudukan", // 'kedudukan' | 'wakilan'
+  stasiunWakilan: "", // nama stasiun terpilih, hanya relevan saat mode wakilan
+
+  _daftarStasiunCache: [],
+  _daftarStasiunLoaded: false,
+  _daftarStasiunPromise: null,
+
+  els: {},
+
+  init(onModeChange) {
+    this._onModeChange = onModeChange;
+    this.els = {
+      fieldRow: document.getElementById("fieldRowStasiunWakilanBulanan"),
+      input: document.getElementById("stasiunWakilanBulanan"),
+      suggestBox: document.getElementById("stasiunWakilanBulananSuggest"),
+      coverHint: document.getElementById("coverHint"),
+    };
+    this._wireAutocomplete();
+  },
+
+  /** Dipanggil oleh script mode-switcher di per-bulan.html saat tab diklik
+   *  (atau sekali otomatis saat halaman pertama dimuat — BISA terjadi
+   *  SEBELUM init() dipanggil dari DOMContentLoaded, karena script mode-
+   *  switcher berjalan lebih dulu. Makanya di sini sengaja pakai
+   *  document.getElementById() langsung, bukan this.els yang mungkin
+   *  belum terisi, supaya tetap aman dipanggil kapan pun). */
+  setMode(mode) {
+    this.mode = mode === "wakilan" ? "wakilan" : "kedudukan";
+    const isWakilan = this.mode === "wakilan";
+
+    const fieldRow = document.getElementById("fieldRowStasiunWakilanBulanan");
+    if (fieldRow) fieldRow.classList.toggle("hidden", !isWakilan);
+
+    const coverHint = document.getElementById("coverHint");
+    if (coverHint) {
+      coverHint.textContent = isWakilan
+        ? "Pilih Stasiun Tempat Wakilan, lalu bulan & tahun — dipakai sebagai filter daftar PDF tersimpan (asal dari mode Stasiun Tempat Wakilan di Per Hari) di bawah."
+        : "Pilih bulan & tahun rekap — dipakai untuk mengisi cover, dan sekaligus jadi filter daftar PDF tersimpan di bawah.";
+    }
+
+    if (isWakilan) {
+      this._prefetchDaftarStasiun();
+    } else {
+      // Balik ke Kedudukan: kosongkan pilihan stasiun supaya tidak
+      // "nyangkut" kalau user balik lagi ke mode Wakilan nanti.
+      this.stasiunWakilan = "";
+      const input = document.getElementById("stasiunWakilanBulanan");
+      if (input) input.value = "";
+    }
+
+    if (typeof this._onModeChange === "function") this._onModeChange();
+  },
+
+  _prefetchDaftarStasiun() {
+    if (this._daftarStasiunLoaded || this._daftarStasiunPromise) return this._daftarStasiunPromise;
+    this._daftarStasiunPromise = Api.getDaftarStasiun()
+      .then((data) => {
+        this._daftarStasiunCache = Array.isArray(data) ? data : [];
+        this._daftarStasiunLoaded = true;
+        return this._daftarStasiunCache;
+      })
+      .catch((err) => {
+        console.warn("Gagal memuat daftar stasiun:", err.message);
+        this._daftarStasiunPromise = null; // izinkan coba lagi nanti
+        return [];
+      });
+    return this._daftarStasiunPromise;
+  },
+
+  _cariSaran(query) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return [];
+    return this._daftarStasiunCache
+      .filter((s) => (s.nama || "").toLowerCase().includes(q) || (s.kode || "").toLowerCase().includes(q))
+      .slice(0, 8);
+  },
+
+  _wireAutocomplete() {
+    const { input, suggestBox } = this.els;
+    if (!input || !suggestBox) return;
+
+    const renderSuggest = () => {
+      const matches = this._cariSaran(input.value);
+      if (!matches.length) {
+        suggestBox.classList.add("hidden");
+        suggestBox.innerHTML = "";
+        return;
+      }
+      suggestBox.innerHTML = matches.map((s) => {
+        const nama = String(s.nama || "").replace(/"/g, "&quot;");
+        const kode = String(s.kode || "").replace(/"/g, "&quot;");
+        return `<button type="button" data-nama="${nama}" style="width:100%; text-align:left; padding:8px 14px; font-size:13.5px; background:transparent; border:none; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <span>${nama}</span>${kode ? `<span style="font-size:11px; color:var(--ink-300); font-family:var(--font-mono);">${kode}</span>` : ""}
+        </button>`;
+      }).join("");
+      suggestBox.classList.remove("hidden");
+    };
+
+    input.addEventListener("input", () => {
+      // Selama diketik ulang, pilihan aktif dianggap belum valid lagi
+      // sampai user memilih ulang dari daftar saran.
+      this.stasiunWakilan = "";
+      renderSuggest();
+      if (typeof this._onModeChange === "function") this._onModeChange();
+    });
+    input.addEventListener("focus", renderSuggest);
+
+    // 'mousedown' (bukan 'click') supaya kejadian sebelum 'blur' pada input.
+    suggestBox.addEventListener("mousedown", (e) => {
+      const btn = e.target.closest("button[data-nama]");
+      if (!btn) return;
+      e.preventDefault();
+      const nama = btn.getAttribute("data-nama");
+      input.value = nama;
+      this.stasiunWakilan = nama;
+      suggestBox.classList.add("hidden");
+      suggestBox.innerHTML = "";
+      if (typeof this._onModeChange === "function") this._onModeChange();
+    });
+
+    input.addEventListener("blur", () => {
+      setTimeout(() => suggestBox.classList.add("hidden"), 150);
+    });
+  },
+};
+
+// ---------------------------------------------------------------------
 // Komunikasi ke backend Google Apps Script
 // ---------------------------------------------------------------------
 const Api = {
@@ -529,7 +671,7 @@ const Api = {
    *   atau null kalau user memakai SmartCard lama dari Drive apa adanya
    *   (tidak perlu kirim ulang/ditimpa).
    */
-  async simpanImoBulanan({ user, bulanNama, tahun, pdfFileName, pdfBase64, smartcardPayload }) {
+  async simpanImoBulanan({ user, bulanNama, tahun, pdfFileName, pdfBase64, smartcardPayload, stasiunTempatWakilan }) {
     const json = await this._post({
       action: "simpanImoBulanan",
       payload: {
@@ -542,6 +684,10 @@ const Api = {
         driveRootFolder: CONFIG.DRIVE_ROOT_FOLDER,
         pdfFileName,
         pdfBase64,
+        // BARU — hanya terisi saat mode "Stasiun Tempat Wakilan" (lihat
+        // BulananMode). Kosong/tidak dikirim untuk mode Kedudukan, sama
+        // sekali tidak mengubah perilaku lama.
+        ...(stasiunTempatWakilan ? { stasiunTempatWakilan } : {}),
         ...(smartcardPayload || {}),
       },
     });
@@ -734,11 +880,30 @@ const SavedPdfList = {
     return { dd, mm, yyyy, ts: new Date(yyyy, mm - 1, dd).getTime() };
   },
 
-  /** Filter sesuai bulan/tahun terpilih, lalu urutkan tanggal muda dulu -> Pagi/Siang/Malam. */
+  /**
+   * Filter sesuai bulan/tahun terpilih (+ mode aktif), lalu urutkan
+   * tanggal muda dulu -> Pagi/Siang/Malam.
+   *
+   * BARU — mode-aware:
+   *  - Mode "kedudukan": hanya entri yang stasiunTempatWakilan-nya KOSONG
+   *    (perilaku lama, tidak berubah).
+   *  - Mode "wakilan": HANYA entri yang stasiunTempatWakilan-nya SAMA
+   *    dengan stasiun terpilih (BulananMode.stasiunWakilan). Kalau belum
+   *    ada stasiun terpilih, langsung return [] (list kosong dulu) —
+   *    sesuai kesepakatan, tidak menampilkan campuran/semua data.
+   */
   filteredSorted(bulanIdx, tahun) {
+    const isWakilan = BulananMode.mode === "wakilan";
+    const stasiunTerpilih = String(BulananMode.stasiunWakilan || "").trim().toLowerCase();
+    if (isWakilan && !stasiunTerpilih) return [];
+
     const filtered = this.all.filter((item) => {
       const t = this._parseTanggal(item.tanggal);
-      return t.mm === bulanIdx && String(t.yyyy) === String(tahun);
+      if (t.mm !== bulanIdx || String(t.yyyy) !== String(tahun)) return false;
+
+      const itemStasiunWakilan = String(item.stasiunTempatWakilan || "").trim().toLowerCase();
+      if (isWakilan) return itemStasiunWakilan === stasiunTerpilih;
+      return !itemStasiunWakilan; // mode kedudukan: hanya entri yang kosong
     });
     return filtered.sort((a, b) => {
       const ta = this._parseTanggal(a.tanggal).ts;
@@ -756,16 +921,25 @@ const SavedPdfList = {
     document.getElementById("bulanPdfCount").textContent = String(list.length);
 
     if (!list.length) {
-      wrap.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">Belum ada PDF tersimpan pada bulan &amp; tahun ini.</div>`;
+      const isWakilan = BulananMode.mode === "wakilan";
+      const belumPilihStasiun = isWakilan && !String(BulananMode.stasiunWakilan || "").trim();
+      wrap.innerHTML = belumPilihStasiun
+        ? `<div class="text-center py-6 text-xs text-slate-400">Pilih Stasiun Tempat Wakilan dahulu untuk melihat PDF tersimpan.</div>`
+        : `<div class="text-center py-6 text-xs text-slate-400">Belum ada PDF tersimpan pada bulan &amp; tahun ini.</div>`;
       return list;
     }
 
-    wrap.innerHTML = list.map((item) => `
+    wrap.innerHTML = list.map((item) => {
+      const isLibur = item.dinas === "LIBUR";
+      const dinasBadgeClass = isLibur
+        ? "bg-rose-100 text-rose-600"
+        : "bg-indigo-100 text-indigo-700";
+      return `
       <div class="flex items-center justify-between gap-2 bg-white rounded-2xl border border-slate-100 px-3 py-2.5 shadow-sm" data-file-url="${item.fileUrl ? this._escapeAttr(item.fileUrl) : ""}">
         <div class="min-w-0">
           <p class="text-[11px] font-bold text-slate-700 font-mono truncate">${item.tanggal}</p>
           <div class="flex items-center gap-1.5 mt-0.5">
-            <span class="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full shrink-0">${item.dinas}</span>
+            <span class="text-[9px] ${dinasBadgeClass} font-bold px-1.5 py-0.5 rounded-full shrink-0">${item.dinas}</span>
             <span class="text-[10px] text-slate-500 truncate">${item.jenisSerahTerima}</span>
           </div>
         </div>
@@ -778,7 +952,8 @@ const SavedPdfList = {
             : `<span class="text-[10px] text-slate-300">Tidak ada</span>`}
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
 
     this._wireDeleteButtons();
     return list;
@@ -823,7 +998,13 @@ const SavedPdfList = {
 //   Hal 4-selesai: gabungan PDF harian (urutan sudah difilter+diurutkan)
 // ---------------------------------------------------------------------
 const PdfBulanan = {
-  async build({ user, bulanNama, tahun, smartcard, daftarHadir, savedList, onProgress }) {
+  // BARU — parameter `stasiunWakilan`: hanya terisi (non-kosong) saat mode
+  // "Stasiun Tempat Wakilan" aktif (lihat wireUnduhImo()). Kalau terisi,
+  // dipakai MENGGANTIKAN user.stasiun untuk (a) field UNIT KERJA di Cover
+  // dan (b) nama file PDF hasil unduhan — supaya keduanya mengikuti stasiun
+  // tempat wakilan yang dipilih, bukan stasiun kedudukan asli user. Mode
+  // Kedudukan (stasiunWakilan kosong/tidak dikirim) perilakunya TIDAK berubah.
+  async build({ user, bulanNama, tahun, smartcard, daftarHadir, savedList, stasiunWakilan, onProgress }) {
     const report = typeof onProgress === "function" ? onProgress : () => {};
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
@@ -835,7 +1016,7 @@ const PdfBulanan = {
 
     // ---- Halaman 1: Cover ----
     const cover = out.addPage(A4_LANDSCAPE);
-    await this._drawCoverPage(out, cover, { fontBold, fontRegular, bulanNama, tahun, user });
+    await this._drawCoverPage(out, cover, { fontBold, fontRegular, bulanNama, tahun, user, stasiunWakilan });
     report(5);
 
     // ---- Halaman 2: Foto SmartCard (landscape) ----
@@ -921,8 +1102,11 @@ const PdfBulanan = {
     report(92);
     const base64 = await this._toBase64(bytes);
     // Format: (BULAN)_STA (STASIUN)_(NAMA)_(JABATAN)_(NIPP).pdf
-    // Contoh: AGUSTUS_STA GLENMORE_BUDI SANTOSO_PPKA_69123.pdf
-    const fileName = buildNamaFileBulanan_(bulanNama, user);
+    // Contoh mode Kedudukan: AGUSTUS_STA GLENMORE_BUDI SANTOSO_PPKA_69123.pdf
+    // Contoh mode Wakilan  : SEPTEMBER_STA SUMBERWADUNG_BUDI SANTOSO_PPKA_69123.pdf
+    // (STASIUN memakai stasiunWakilan kalau mode Wakilan aktif — lihat
+    // buildNamaFileBulanan_).
+    const fileName = buildNamaFileBulanan_(bulanNama, user, stasiunWakilan);
     return { bytes, base64, fileName };
   },
 
@@ -945,7 +1129,7 @@ const PdfBulanan = {
    * diganti dengan desain baru yang layout-nya beda, angka-angka ini perlu
    * diukur ulang.
    */
-  async _drawCoverPage(pdfDoc, page, { fontBold, fontRegular, bulanNama, tahun, user }) {
+  async _drawCoverPage(pdfDoc, page, { fontBold, fontRegular, bulanNama, tahun, user, stasiunWakilan }) {
     const { rgb } = PDFLib;
     const { width: pw, height: ph } = page.getSize();
 
@@ -1027,7 +1211,12 @@ const PdfBulanan = {
     // (bukan fallback diam-diam) supaya ketahuan datanya belum lengkap —
     // caller (build IMO bulanan) sudah punya try/catch yang menampilkan
     // pesan ini lewat Toast.
-    const stasiunNama = String(user.stasiun || "").trim();
+    // BARU — mode "Stasiun Tempat Wakilan": UNIT KERJA di cover memakai
+    // stasiun yang dipilih di dropdown Stasiun Tempat Wakilan (parameter
+    // stasiunWakilan), BUKAN stasiun kedudukan asli user (user.stasiun).
+    // Mode Kedudukan (stasiunWakilan kosong) perilakunya sama seperti
+    // sebelumnya — tetap pakai user.stasiun.
+    const stasiunNama = String(stasiunWakilan || "").trim() || String(user.stasiun || "").trim();
     const daftarStasiun = await Api.getDaftarStasiun();
     const stasiunInfo = daftarStasiun.find((s) => s.nama === stasiunNama);
     const kelas = stasiunInfo ? String(stasiunInfo.kelas || "").trim() : "";
@@ -1310,6 +1499,13 @@ function wireUnduhImo() {
     if (!Session.current) { Toast.show("Silakan login terlebih dahulu.", "warn"); return; }
     if (!validateBeforeDownload()) return;
 
+    const isWakilan = BulananMode.mode === "wakilan";
+    const stasiunWakilan = String(BulananMode.stasiunWakilan || "").trim();
+    if (isWakilan && !stasiunWakilan) {
+      Toast.show("Pilih Stasiun Tempat Wakilan terlebih dahulu.", "error");
+      return;
+    }
+
     const { bulanIdx, bulanNama, tahun } = MonthYear.get();
     const savedList = SavedPdfList.filteredSorted(bulanIdx, tahun);
 
@@ -1324,6 +1520,11 @@ function wireUnduhImo() {
         user: Session.current,
         bulanNama,
         tahun,
+        // BARU — hanya dikirim (non-kosong) saat mode "Stasiun Tempat
+        // Wakilan" aktif, supaya nama file & UNIT KERJA di Cover memakai
+        // stasiun wakilan, bukan stasiun kedudukan user (lihat
+        // PdfBulanan.build/_drawCoverPage/buildNamaFileBulanan_).
+        stasiunWakilan: isWakilan ? stasiunWakilan : "",
         smartcard: SmartcardWidget.state.data,
         daftarHadir: UploadSingle.state.daftarHadir,
         savedList,
@@ -1339,6 +1540,7 @@ function wireUnduhImo() {
         user: Session.current, bulanNama, tahun,
         pdfFileName: pdf.fileName, pdfBase64: pdf.base64,
         smartcardPayload: SmartcardWidget.getUploadPayload(),
+        stasiunTempatWakilan: isWakilan ? stasiunWakilan : "",
       });
       SmartcardWidget.markSaved();
       Busy.setProgress(97);
@@ -1350,7 +1552,8 @@ function wireUnduhImo() {
       Busy.setProgress(100);
 
       Busy.hide();
-      Toast.show(`Tersimpan sebagai "${pdf.fileName}" di ${CONFIG.DRIVE_ROOT_FOLDER}/${Session.current.stasiun}/${Session.current.jabatan}/${Session.current.nipp}/${tahun}/${bulanNama}/ dan sudah diunduh.`, "success");
+      const folderPath = `${CONFIG.DRIVE_ROOT_FOLDER}/${Session.current.stasiun}/${Session.current.jabatan}/${Session.current.nipp}/${tahun}/${bulanNama}/` + (isWakilan ? `${stasiunWakilan}/` : "");
+      Toast.show(`Tersimpan sebagai "${pdf.fileName}" di ${folderPath} dan sudah diunduh.`, "success");
     } catch (err) {
       Busy.hide();
       Toast.show("Gagal membuat/menyimpan IMO bulanan: " + err.message, "error");
@@ -1394,6 +1597,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const { bulanIdx, tahun } = MonthYear.get();
     SavedPdfList.render(bulanIdx, tahun);
   };
+
+  // BARU — BulananMode.init() dipanggil SEBELUM MonthYear.init() supaya
+  // elemen-elemennya (fieldRowStasiunWakilanBulanan, dst) sudah ke-wire
+  // saat refreshList pertama kali jalan. refreshList sendiri dipakai
+  // sebagai callback onModeChange (ganti tab / ganti pilihan stasiun ->
+  // render ulang list dari cache, tidak fetch ulang ke server).
+  BulananMode.init(refreshList);
 
   MonthYear.init(refreshList);
 

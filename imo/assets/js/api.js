@@ -64,6 +64,19 @@ const Api = {
   },
 
   /**
+   * Ambil daftar PDF Tersimpan milik satu NIPP dari sheet SerahTerima.
+   * Dipakai untuk widget sidebar "PDF Tersimpan" di dashboard, DAN untuk
+   * validasi tanggal duplikat di halaman ini (lihat Form.checkTanggalDuplikat
+   * di form.js) sebelum user menekan "Lanjut →" pada Langkah 1.
+   * @param {string} nipp
+   * @returns {Promise<{found: boolean, list: Array<{tanggal, dinas, jenisSerahTerima, fileUrl}>}>}
+   */
+  async cekPdfTersimpan(nipp) {
+    const json = await this._post({ action: "cekPdfTersimpan", nipp });
+    return json.data;
+  },
+
+  /**
    * Kirim seluruh data serah terima (form + foto sudah tertempel di PDF
    * base64) ke backend — PDF disimpan ke Google Drive dan baris baru
    * dicatat ke sheet SerahTerima.
@@ -72,25 +85,43 @@ const Api = {
    * @returns {Promise<{pdfUrl: string, folderUrl: string}>}
    */
   async saveSerahTerima(data, pdf) {
-    const json = await this._post({
-      action: "simpanData",
-      payload: {
-        nipp: data.nipp,
-        nama: data.nama,
-        jabatan: data.jabatan,
-        stasiun: data.stasiun,
-        dinas: data.dinas,
-        tanggal: data.tanggal,
-        jenisSerahTerima: data.jenisSerahTerima,
-        employeeFound: data.employeeFound,
-        tabel: data.mapping.tabel,
-        driveRootFolder: CONFIG.DRIVE_ROOT_FOLDER,
-        pdfFileName: pdf.fileName,
-        pdfBase64: pdf.base64,
-        // Foto "Serah Terima" & "Dokumentasi Kegiatan" TIDAK dikirim
-        // terpisah — sudah tertempel di dalam PDF ini.
-      },
-    });
+    const payload = {
+      nipp: data.nipp,
+      nama: data.nama,
+      jabatan: data.jabatan,
+      stasiun: data.stasiun,
+      dinas: data.dinas,
+      tanggal: data.tanggal,
+      jenisSerahTerima: data.jenisSerahTerima,
+      employeeFound: data.employeeFound,
+      tabel: data.mapping.tabel,
+      driveRootFolder: CONFIG.DRIVE_ROOT_FOLDER,
+      pdfFileName: pdf.fileName,
+      pdfBase64: pdf.base64,
+      // Foto "Serah Terima" & "Dokumentasi Kegiatan" TIDAK dikirim
+      // terpisah — sudah tertempel di dalam PDF ini.
+    };
+    // BARU — HANYA disertakan saat mode "Stasiun Tempat Wakilan" (lihat
+    // Form.mode di form.js). Saat mode Kedudukan, field ini tidak ada sama
+    // sekali di payload, jadi perilaku backend untuk Kedudukan 100% tidak
+    // berubah (lihat simpanData di Code.gs).
+    if (data.mode === CONFIG.MODE_WAKILAN) {
+      payload.stasiunTempatWakilan = data.stasiunTempatWakilan;
+      payload.wakilan = data.wakilan;
+    }
+    const json = await this._post({ action: "simpanData", payload });
+    return json.data;
+  },
+
+  /**
+   * BARU — Ambil daftar Kode/Nama/Kelas seluruh Stasiun dari sheet
+   * MasterStasiun (action backend sudah ada & dipakai di tempat lain —
+   * lihat assets/js/bulanan.js dan root index.html). Dipakai di sini untuk
+   * autocomplete field "Stasiun Tempat Wakilan" (mode Wakilan, Langkah 1).
+   * @returns {Promise<Array<{kode, nama, kelas}>>}
+   */
+  async getDaftarStasiun() {
+    const json = await this._post({ action: "getDaftarStasiun" });
     return json.data;
   },
 };
