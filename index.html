@@ -656,6 +656,31 @@
             <span id="foundStasiun" class="font-semibold text-slate-700 text-right">-</span>
           </div>
         </div>
+
+        <!-- BARU — tampil kalau NIPP ini SUDAH punya password (hasPassword
+             true dari cekNipp), lihat updateFoundStagePasswordUI(). -->
+        <div id="foundPasswordBlock" class="hidden">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <input type="password" id="loginPasswordInput" placeholder="Masukkan password" autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+
+        <!-- BARU — tampil kalau NIPP ini BELUM punya password (pegawai lama
+             transisi ke fitur ini, atau password baru saja di-reset admin
+             lewat sheet Akun). -->
+        <div id="foundBuatPasswordBlock" class="hidden space-y-3.5">
+          <p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
+            Akun ini belum punya password. Buat password baru untuk melanjutkan.
+          </p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+            <input type="password" id="loginPasswordBaruInput" placeholder="Minimal 4 karakter" autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password</label>
+            <input type="password" id="loginKonfirmasiPasswordInput" placeholder="Ulangi password" autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          </div>
+        </div>
+
         <button type="submit" id="btnLoginConfirmed" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
           LOGIN
         </button>
@@ -697,6 +722,14 @@
           <input type="text" id="loginStasiunInput" placeholder="Contoh: Glenmore atau GLM" required autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
           <div id="loginStasiunSuggest" class="hidden absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-48 overflow-y-auto"></div>
           <p id="loginStasiunPreview" class="hidden text-xs text-slate-400 mt-1 px-1"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Buat Password</label>
+          <input type="password" id="daftarPasswordInput" placeholder="Minimal 4 karakter" required autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password</label>
+          <input type="password" id="daftarKonfirmasiPasswordInput" placeholder="Ulangi password" required autocomplete="new-password" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
         </div>
         <button type="submit" id="btnDaftarDanLogin" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
           Daftar dan Login
@@ -1275,6 +1308,13 @@
       const modal = document.getElementById('loginModal');
       const card = document.getElementById('loginModalCard');
       document.getElementById('loginNippInput').value = '';
+      // BARU — bersihkan sisa input password dari percobaan sebelumnya
+      // (kalau ada), jangan sampai tertinggal/kelihatan lagi.
+      document.getElementById('loginPasswordInput').value = '';
+      document.getElementById('loginPasswordBaruInput').value = '';
+      document.getElementById('loginKonfirmasiPasswordInput').value = '';
+      document.getElementById('daftarPasswordInput').value = '';
+      document.getElementById('daftarKonfirmasiPasswordInput').value = '';
       pendingNipp = '';
       pendingUser = null;
       showLoginStage('nipp');
@@ -1411,11 +1451,15 @@
             nipp: result.data.nipp || nipp,
             jabatan: result.data.jabatan,
             stasiun: result.data.stasiun,
+            // BARU — dari sini modal tahu harus tampilkan form "Masukkan
+            // Password" (sudah ada akun) atau "Buat Password" (belum).
+            hasPassword: !!result.data.hasPassword,
           };
           document.getElementById('foundNama').innerText = pendingUser.nama;
           document.getElementById('foundNipp').innerText = pendingUser.nipp;
           document.getElementById('foundJabatan').innerText = pendingUser.jabatan;
           document.getElementById('foundStasiun').innerText = pendingUser.stasiun;
+          updateFoundStagePasswordUI();
           showLoginStage('found');
         } else {
           // NIPP belum terdaftar -> tampilkan form pendaftaran, NIPP sudah terisi otomatis.
@@ -1425,6 +1469,8 @@
           document.getElementById('loginStasiunInput').value = '';
           document.getElementById('loginStasiunPreview').classList.add('hidden');
           document.getElementById('loginStasiunSuggest').classList.add('hidden');
+          document.getElementById('daftarPasswordInput').value = '';
+          document.getElementById('daftarKonfirmasiPasswordInput').value = '';
           showLoginStage('daftar');
         }
       } catch (err) {
@@ -1432,6 +1478,19 @@
       } finally {
         setLoginBusy(false);
       }
+    }
+
+    // BARU — toggle blok "Masukkan Password" vs "Buat Password" di Tahap 2A
+    // sesuai pendingUser.hasPassword, dan bersihkan input password lama
+    // (jangan sampai ada bekas ketikan dari NIPP sebelumnya).
+    function updateFoundStagePasswordUI() {
+      const hasPassword = !!(pendingUser && pendingUser.hasPassword);
+      document.getElementById('foundPasswordBlock').classList.toggle('hidden', !hasPassword);
+      document.getElementById('foundBuatPasswordBlock').classList.toggle('hidden', hasPassword);
+      document.getElementById('loginPasswordInput').value = '';
+      document.getElementById('loginPasswordBaruInput').value = '';
+      document.getElementById('loginKonfirmasiPasswordInput').value = '';
+      document.getElementById('btnLoginConfirmed').innerText = hasPassword ? 'LOGIN' : 'Buat Password & Masuk';
     }
 
     // ---- Tahap 2A: NIPP ditemukan -> submit form (klik tombol LOGIN ATAU
@@ -1443,20 +1502,73 @@
 
     function handleLoginConfirmed() {
       if (!pendingUser) return;
-      applyLoggedInUI(pendingUser);
-      sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(pendingUser));
+
+      if (pendingUser.hasPassword) {
+        loginDenganPasswordExisting_();
+      } else {
+        buatPasswordDanLogin_();
+      }
+    }
+
+    // BARU — Tahap 2A saat akun SUDAH punya password: verifikasi ke backend
+    // (action "loginDenganPassword") sebelum dianggap login berhasil.
+    async function loginDenganPasswordExisting_() {
+      const password = document.getElementById('loginPasswordInput').value;
+      if (!password) { showLoginError('Password wajib diisi.'); return; }
+
+      setLoginBusy(true);
+      try {
+        const data = await callBackend({
+          action: 'loginDenganPassword',
+          payload: { nipp: pendingUser.nipp, password: password },
+        });
+        selesaikanLoginSukses_(data);
+      } catch (err) {
+        showLoginError(err.message);
+      } finally {
+        setLoginBusy(false);
+      }
+    }
+
+    // BARU — Tahap 2A saat akun BELUM punya password (pegawai lama transisi,
+    // atau baru saja di-reset admin): buat password baru sekaligus login
+    // (action "buatPasswordAkun").
+    async function buatPasswordDanLogin_() {
+      const password = document.getElementById('loginPasswordBaruInput').value;
+      const konfirmasiPassword = document.getElementById('loginKonfirmasiPasswordInput').value;
+      if (!password || !konfirmasiPassword) { showLoginError('Password dan Konfirmasi Password wajib diisi.'); return; }
+      if (password !== konfirmasiPassword) { showLoginError('Konfirmasi Password tidak cocok dengan Password.'); return; }
+
+      setLoginBusy(true);
+      try {
+        const data = await callBackend({
+          action: 'buatPasswordAkun',
+          payload: { nipp: pendingUser.nipp, password: password, konfirmasiPassword: konfirmasiPassword },
+        });
+        selesaikanLoginSukses_(data, `Password berhasil dibuat. Selamat datang, ${data.nama}!`);
+      } catch (err) {
+        showLoginError(err.message);
+      } finally {
+        setLoginBusy(false);
+      }
+    }
+
+    // BARU — langkah akhir yang SAMA untuk semua jalur login sukses (login
+    // password biasa, buat password pertama kali, & daftar+login pegawai
+    // baru) supaya tidak triplikasi kode: terapkan UI logged-in, simpan
+    // sesi, refresh iframe submenu IMO kalau perlu, tutup modal, tampilkan
+    // toast, lalu sinkronkan widget "Telah Digunakan".
+    function selesaikanLoginSukses_(data, pesanToast) {
+      const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+      applyLoggedInUI(user);
+      sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
       refreshToolFrameAfterLogin();
       closeLoginModal();
-      showToast(`Selamat datang, ${pendingUser.nama}!`);
-
-      // Klik LOGIN ini murni proses di browser (tidak memanggil backend sama
-      // sekali), jadi Counter di sheet TIDAK akan bertambah dengan sendirinya
-      // seperti action lain. Laporkan pemakaian lewat action ringan
-      // "catatPemakaian" (lihat Code.gs) supaya tetap ikut ke-counter, lalu
-      // sinkronkan widget "Telah Digunakan" begitu selesai.
-      callBackend({ action: 'catatPemakaian' })
-        .then(loadUsageCounter)
-        .catch((err) => console.warn('Gagal mencatat pemakaian (login):', err.message));
+      showToast(pesanToast || `Selamat datang, ${user.nama}!`);
+      // "loginDenganPassword"/"buatPasswordAkun" adalah action backend
+      // sungguhan (beda dari alur lama yang murni klien) — Counter di sheet
+      // sudah bertambah otomatis lewat doPost, tinggal sinkronkan widgetnya.
+      loadUsageCounter();
     }
 
     // -----------------------------------------------------------------------
@@ -1691,9 +1803,15 @@
       const nama = document.getElementById('loginNameInput').value.trim();
       const jabatan = getJabatanValue('loginJabatanSelect', 'loginJabatanLainnyaInput');
       const stasiun = document.getElementById('loginStasiunInput').value.trim();
+      const password = document.getElementById('daftarPasswordInput').value;
+      const konfirmasiPassword = document.getElementById('daftarKonfirmasiPasswordInput').value;
 
-      if (!nama || !jabatan || !stasiun) {
+      if (!nama || !jabatan || !stasiun || !password || !konfirmasiPassword) {
         showLoginError('Lengkapi semua kolom pendaftaran terlebih dahulu.');
+        return;
+      }
+      if (password !== konfirmasiPassword) {
+        showLoginError('Konfirmasi Password tidak cocok dengan Password.');
         return;
       }
 
@@ -1717,20 +1835,13 @@
             nipp: pendingNipp,
             jabatan: jabatan,
             stasiun: stasiun,
+            password: password,
+            konfirmasiPassword: konfirmasiPassword,
           },
         });
         // Backend mengembalikan nama yang SUDAH dinormalisasi (Title Case) —
         // pakai persis nilai balikan ini sebagai identitas user aktif.
-        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
-
-        applyLoggedInUI(user);
-        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
-        refreshToolFrameAfterLogin();
-        closeLoginModal();
-        showToast(`Pendaftaran berhasil. Selamat datang, ${user.nama}!`);
-        // "daftarPegawai" sudah menambah Counter di backend — sinkronkan
-        // widget sekarang juga.
-        loadUsageCounter();
+        selesaikanLoginSukses_(data, `Pendaftaran berhasil. Selamat datang, ${data.nama}!`);
       } catch (err) {
         showLoginError('Gagal mendaftar: ' + err.message);
       } finally {
@@ -1890,6 +2001,10 @@
     function setLoginBusy(busy) {
       document.getElementById('btnCekNipp').disabled = busy;
       document.getElementById('btnDaftarDanLogin').disabled = busy;
+      // BARU — tombol ini sekarang juga memicu panggilan backend sungguhan
+      // (loginDenganPassword / buatPasswordAkun), jadi perlu ikut di-disable
+      // selama proses berjalan, sama seperti 2 tombol submit lainnya.
+      document.getElementById('btnLoginConfirmed').disabled = busy;
     }
 
     function handleLogout() {
