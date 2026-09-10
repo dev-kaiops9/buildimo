@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IMO Tools</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome CDN untuk Ikon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen md:h-screen md:overflow-hidden p-1.5 sm:p-3 text-slate-800">
+
+  <!-- Main Container -->
+  <div class="w-full md:h-full mx-auto bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-200">
+    
+    <!-- ================= SIDEBAR NAV (KIRI) ================= -->
+    <aside class="w-full md:w-64 bg-[#5B58CA] text-white p-6 flex flex-col justify-between shrink-0">
+      <div>
+        <!-- Logo -->
+        <div class="mb-10 flex flex-col items-center text-center">
+          <span class="text-2xl font-extrabold tracking-tight">IMO Tools</span>
+          <!-- Tombol "Update : dd/mm/yyyy" — desain samar, tanggalnya otomatis
+               mengikuti entri paling atas di CHANGELOG (lihat renderChangelogBadge()).
+               Klik untuk membuka popup "Catatan Update". -->
+          <button type="button" onclick="openChangelogModal()" id="btnChangelog" class="mt-1.5 text-[10.5px] font-medium text-indigo-100/40 hover:text-indigo-100/75 active:scale-95 transition-all duration-200">
+            Update : <span id="changelogBadgeDate">-</span>
+          </button>
+        </div>
+
+        <!-- Menu Utama -->
+        <nav class="space-y-2">
+          <button onclick="selectTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-semibold bg-white/20 text-white shadow-inner backdrop-blur-md">
+            <i class="fa-solid fa-table-cells-large w-5 text-center"></i>
+            <span>Dashboard</span>
+          </button>
+
+          <!-- Menu IMO + Sub-menu (Per Hari / Per Bulan) -->
+          <div>
+            <button onclick="selectTab('imo-per-hari')" id="nav-imo" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+              <i class="fa-solid fa-book-open w-5 text-center"></i>
+              <span class="flex-1 text-left">IMO</span>
+              <i id="imoChevron" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
+            </button>
+            <div id="imoSubmenu" class="hidden flex-col gap-1 mt-1 pl-9 pr-1">
+              <button onclick="selectTab('imo-per-hari')" id="nav-imo-per-hari" class="nav-subitem w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-xs font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+                <i class="fa-solid fa-circle text-[5px]"></i>
+                <span>Per Hari</span>
+              </button>
+              <button onclick="selectTab('imo-per-bulan')" id="nav-imo-per-bulan" class="nav-subitem w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 text-xs font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+                <i class="fa-solid fa-circle text-[5px]"></i>
+                <span>Per Bulan</span>
+              </button>
+            </div>
+          </div>
+
+          <button onclick="selectTab('serah-terima-pdf')" id="nav-serah-terima-pdf" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+            <i class="fa-solid fa-file-pdf w-5 text-center"></i>
+            <span>Serah Terima PDF</span>
+          </button>
+          <button onclick="selectTab('pdf-to-a4')" id="nav-pdf-to-a4" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+            <i class="fa-solid fa-file-export w-5 text-center"></i>
+            <span>PDF to A4</span>
+          </button>
+
+          <!-- Menu "Profil" — HANYA muncul setelah user login (lihat applyLoggedInUI /
+               handleLogout: keduanya toggle class "hidden" pada tombol ini). -->
+          <button onclick="selectTab('profil')" id="nav-profil" class="nav-item hidden w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 text-sm font-medium text-indigo-100/70 hover:bg-white/10 hover:text-white">
+            <i class="fa-solid fa-id-card w-5 text-center"></i>
+            <span>Profil</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Menu Bawah -->
+      <div class="pt-8 border-t border-indigo-400/30 mt-6 md:mt-0">
+        <!-- Widget "Telah Digunakan" — total pemakaian tools dari sheet Counter -->
+        <div id="usageCounterWidget" class="mb-3 px-4 py-3 rounded-2xl bg-white/10 border border-white/10">
+          <p class="text-[11px] text-indigo-100/80 leading-snug mb-1">Telah Digunakan</p>
+          <p class="flex items-baseline gap-1.5">
+            <span id="usageCounterValue" class="font-extrabold text-white text-3xl leading-none tracking-tight inline-block transition-transform duration-300">-</span>
+            <span class="text-xs font-medium text-indigo-100/70">kali</span>
+          </p>
+          <p id="usageCounterDate" class="text-[11px] text-indigo-100/50 mt-1.5">per -</p>
+        </div>
+
+        <div class="space-y-2">
+          <button onclick="selectTab('about')" id="nav-about" class="nav-item w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-indigo-100/70 hover:bg-white/10 hover:text-white transition-all text-sm font-medium">
+            <i class="fa-solid fa-circle-info w-5 text-center"></i>
+            <span>About | Data Backup</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT (TENGAH) ================= -->
+    <main class="flex-1 bg-slate-50/50 p-6 md:p-8 md:overflow-y-auto flex flex-col min-h-0">
+      <!-- Top Bar Header (tetap tampil di semua menu) -->
+      <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 shrink-0">
+        <h1 id="pageTitle" class="text-3xl font-bold text-slate-800 tracking-tight">Tools</h1>
+
+        <!-- Search & Actions (hanya relevan di Dashboard) -->
+        <div id="headerActions" class="flex items-center gap-4 w-full sm:w-auto">
+          <div class="relative flex-1 sm:flex-none">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input
+              type="text"
+              id="searchInput"
+              oninput="handleSearch()"
+              placeholder="Cari tools..."
+              class="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 w-full sm:w-64 shadow-sm transition"
+            />
+          </div>
+          <div class="flex items-center gap-2 pl-3 pr-4 py-2.5 bg-white border border-slate-200 rounded-full shadow-sm">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+            <span class="text-xs font-semibold text-green-600">Online</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ================= DASHBOARD VIEW ================= -->
+      <div id="dashboardView">
+
+        <!-- ===== Banner Sambutan (di atas daftar menu / kartu IMO) ===== -->
+        <div class="relative mb-6 mt-6 sm:mt-8">
+          <!-- Lapisan background (rounded + clip lingkaran dekorasi, TIDAK meng-clip karakter) -->
+          <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#4a47b5] via-[#5B58CA] to-purple-600 shadow-lg shadow-indigo-200/60 overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-56 h-56 bg-white/10 rounded-full"></div>
+            <div class="absolute -bottom-16 right-24 w-40 h-40 bg-white/10 rounded-full"></div>
+            <div class="absolute top-8 right-40 w-6 h-6 bg-white/20 rounded-full hidden md:block"></div>
+          </div>
+
+          <div class="relative flex items-stretch min-h-[180px] sm:min-h-[200px]">
+            <!-- Teks Sambutan -->
+            <div class="flex-1 flex flex-col justify-center px-6 sm:px-10 py-8 pr-28 sm:pr-10 md:max-w-[62%]">
+              <span class="inline-flex items-center gap-1.5 self-start text-[11px] font-bold text-white/90 bg-white/15 px-3 py-1 rounded-full mb-3 tracking-wide uppercase backdrop-blur-sm">
+                <i class="fa-solid fa-hand-sparkles text-amber-300"></i>
+                Selamat Datang
+              </span>
+              <h2 id="dashboardWelcomeText" class="text-xl sm:text-2xl md:text-[26px] font-extrabold text-white leading-snug tracking-tight">
+                Selamat datang di Dashboard IMO Tools
+              </h2>
+              <p class="text-indigo-100 text-sm sm:text-[15px] mt-2 leading-relaxed">
+                Kelola Data IMO dalam satu tools yang lebih cepat, akurat, dan rapi.
+              </p>
+            </div>
+
+            <!-- Karakter Petugas (sengaja melebihi tepi atas banner, tidak ikut ke-clip) -->
+            <!-- Video transparan (di-key dari green screen) + loop ping-pong (maju lalu mundur)
+                 supaya sambungan akhir->awal mulus tanpa tersendat, tanpa perlu crossfade. -->
+            <div class="absolute -right-2 sm:right-2 md:-right-4 bottom-0 -top-8 sm:-top-10 flex items-end pointer-events-none">
+              <video
+                poster="assets/img/petugas-imo-poster.png"
+                class="h-[220px] sm:h-[250px] md:h-[270px] w-auto object-contain drop-shadow-2xl select-none brightness-110"
+                autoplay
+                loop
+                muted
+                playsinline
+                disablePictureInPicture
+                aria-label="Petugas KAI menyambut Anda"
+              >
+                <source src="assets/video/petugas-imo-pingpong.webm" type="video/webm">
+              </video>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course Cards Container -->
+        <div id="courseListContainer" class="space-y-6">
+          <!-- Rendered dynamically via JavaScript -->
+        </div>
+      </div>
+
+      <!-- ================= TOOL VIEW (IMO / Serah Terima PDF / PDF to A4) =================
+           Dimuat via iframe di dalam shell yang sama supaya sidebar & info user login
+           tetap terlihat saat berpindah menu — tidak pernah reload halaman penuh. -->
+      <div id="toolView" class="hidden flex-1 min-h-[80vh] md:min-h-0 flex-col">
+        <iframe id="toolFrame" title="Tool" class="w-full flex-1 min-h-[80vh] md:min-h-0 border-0 rounded-3xl bg-white shadow-inner"></iframe>
+      </div>
+
+      <!-- ================= ABOUT | DATA BACKUP VIEW ================= -->
+      <div id="aboutView" class="hidden flex-1 flex-col min-h-0 md:overflow-y-auto">
+        <div class="max-w-3xl w-full mx-auto space-y-6 pb-4">
+
+          <!-- Card: Tentang IMO Tools -->
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-circle-info text-lg"></i>
+              </div>
+              <h2 class="text-lg sm:text-xl font-bold text-slate-800">Tentang IMO Tools</h2>
+            </div>
+
+            <p class="text-slate-600 text-sm leading-relaxed">
+              <strong class="text-slate-800">IMO Tools</strong> adalah platform digital yang dirancang untuk membantu mempermudah pengelolaan data dan administrasi operasional dinasan secara lebih
+              <strong class="text-slate-800">cepat, rapi, akurat, dan efisien</strong>.
+            </p>
+            <p class="text-slate-600 text-sm leading-relaxed mt-3">
+              IMO Tools menyediakan berbagai fitur dalam satu platform, mulai dari pengelolaan <strong class="text-slate-800">IMO Harian dan Bulanan</strong>, pembuatan <strong class="text-slate-800">Serah Terima PDF</strong>, hingga penyesuaian dokumen <strong class="text-slate-800">PDF ke format A4</strong>.
+            </p>
+            <p class="text-slate-600 text-sm leading-relaxed mt-3">
+              Platform ini dikembangkan untuk membantu mengurangi pekerjaan administrasi secara manual, meminimalkan kesalahan pengolahan data, serta mempermudah pengelolaan dan dokumentasi pekerjaan.
+            </p>
+
+            <h3 class="text-sm font-bold text-slate-800 mt-6 mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-bullseye text-[#5B58CA] text-xs"></i>
+              Tujuan Kami
+            </h3>
+            <p class="text-slate-600 text-sm leading-relaxed">
+              IMO Tools dikembangkan sebagai solusi sederhana dan praktis untuk mendukung kebutuhan administrasi dan pengolahan data sehari-hari. Dengan memanfaatkan teknologi digital, proses pencatatan, pengolahan, dan dokumentasi dapat dilakukan dengan lebih terstruktur dan efisien.
+            </p>
+
+            <h3 class="text-sm font-bold text-slate-800 mt-6 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-[#5B58CA] text-xs"></i>
+              Fitur Utama
+            </h3>
+            <ul class="space-y-2.5">
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-xs mt-1 shrink-0"></i>
+                <span><strong class="text-slate-800">IMO Per Hari</strong> — Pengelolaan dan pencatatan data IMO harian.</span>
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-xs mt-1 shrink-0"></i>
+                <span><strong class="text-slate-800">IMO Per Bulan</strong> — Rekap dan pengelolaan data IMO berdasarkan periode bulanan.</span>
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-xs mt-1 shrink-0"></i>
+                <span><strong class="text-slate-800">Serah Terima PDF</strong> — Membantu pembuatan dan pengelolaan dokumen serah terima.</span>
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-xs mt-1 shrink-0"></i>
+                <span><strong class="text-slate-800">PDF to A4</strong> — Menyesuaikan dokumen PDF ke ukuran A4.</span>
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-600">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-xs mt-1 shrink-0"></i>
+                <span><strong class="text-slate-800">Pengelolaan Data</strong> — Membantu menyimpan dan mengelola data secara lebih terstruktur.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Card: Identitas Developer & Data Backup -->
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-id-badge text-lg"></i>
+              </div>
+              <h2 class="text-lg sm:text-xl font-bold text-slate-800">Developer</h2>
+            </div>
+
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">IMO Tools dikembangkan dan dikelola oleh:</p>
+
+            <div class="bg-slate-50/70 border border-slate-100 rounded-2xl p-5 space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-medium text-slate-400">Nama</span>
+                <span class="text-sm font-bold text-slate-800">Bagus Dwi Sulaksono</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-200/70">
+                <span class="text-xs font-medium text-slate-400">NIPP</span>
+                <span class="text-sm font-bold text-indigo-600 font-mono">69451</span>
+              </div>
+              <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-200/70">
+                <span class="text-xs font-medium text-slate-400">WhatsApp</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-slate-800">0853-2211-2251</span>
+                  <button
+                    onclick="copyWhatsApp()"
+                    title="Salin nomor WhatsApp"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-indigo-50 text-[#5B58CA] hover:bg-indigo-100 active:scale-95 transition"
+                  >
+                    <i id="copyWaIcon" class="fa-regular fa-copy text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <h3 class="text-sm font-bold text-slate-800 mt-6 mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-database text-[#5B58CA] text-xs"></i>
+              Layanan Pengambilan Data Backup
+            </h3>
+            <p class="text-slate-600 text-sm leading-relaxed">
+              Untuk keperluan <strong class="text-slate-800">pengambilan data backup, pemulihan data, perpindahan data, atau bantuan teknis</strong> terkait IMO Tools, silakan menghubungi developer melalui nomor WhatsApp yang tercantum di atas.
+            </p>
+
+            <a
+              href="https://wa.me/6285322112251"
+              target="_blank"
+              rel="noopener"
+              class="mt-5 inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-full font-semibold text-sm shadow-md shadow-emerald-200 transition-all duration-200"
+            >
+              <i class="fa-brands fa-whatsapp text-base"></i>
+              Hubungi via WhatsApp
+            </a>
+
+            <p class="text-center text-xs font-semibold text-slate-400 mt-6 tracking-wide">
+              IMO Tools — Sederhanakan Administrasi, Tingkatkan Efisiensi.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================= PROFIL VIEW =================
+           Muncul lewat menu "Profil" di sidebar (hanya tampil setelah login).
+           Default: MODE LIHAT (semua field terkunci). Tombol "Edit" mengubah
+           ke MODE EDIT (Nama/Jabatan/Stasiun bisa diketik) — NIPP TETAP
+           terkunci di kedua mode, tidak pernah bisa diedit. Setelah "Simpan
+           Perubahan" berhasil, otomatis kembali ke MODE LIHAT. -->
+      <div id="profilView" class="hidden flex-1 flex-col min-h-0 md:overflow-y-auto">
+        <div class="max-w-xl w-full mx-auto space-y-6 pb-4">
+
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
+            <div class="flex items-center justify-between gap-3 mb-6">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-id-card text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-800">Profil Saya</h2>
+                  <p class="text-xs text-slate-400 mt-0.5" id="profilSubtitle">Data Nama, Jabatan, dan Stasiun Anda.</p>
+                </div>
+              </div>
+
+              <!-- Tombol "Edit" — hanya tampil di MODE LIHAT. -->
+              <button type="button" id="btnEditProfil" onclick="setProfilEditMode(true)" class="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-[#5B58CA] rounded-2xl font-semibold text-xs active:scale-95 transition">
+                <i class="fa-solid fa-pen"></i> Edit
+              </button>
+            </div>
+
+            <form id="profilForm" class="space-y-4" onsubmit="handleSaveProfil(event)">
+              <!-- NIPP: hanya ditampilkan, TIDAK BISA diedit di mode apa pun -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
+                <input type="text" id="profilNippInput" class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm font-mono font-bold text-slate-500 cursor-not-allowed" disabled readonly />
+                <p class="text-[11px] text-slate-400 mt-1">NIPP tidak dapat diubah dari menu ini.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilNamaInput">Nama</label>
+                <input type="text" id="profilNamaInput" placeholder="Nama Lengkap" disabled class="profil-field w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilJabatanSelect">Jabatan</label>
+                <select id="profilJabatanSelect" disabled class="profil-field w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition">
+                  <option value="" disabled>Pilih Jabatan</option>
+                  <option value="KS">KS</option>
+                  <option value="PPKA">PPKA</option>
+                  <option value="PRS">PRS</option>
+                  <option value="PLR">PLR</option>
+                  <option value="PJL">PJL</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+                <div id="profilJabatanLainnyaField" class="hidden mt-2">
+                  <input type="text" id="profilJabatanLainnyaInput" placeholder="Ketik jabatan" disabled class="profil-field w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+                </div>
+              </div>
+
+              <div class="relative">
+                <label class="block text-xs font-semibold text-slate-600 mb-1" for="profilStasiunInput">Stasiun</label>
+                <input type="text" id="profilStasiunInput" placeholder="Stasiun" disabled autocomplete="off" class="profil-field w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+                <div id="profilStasiunSuggest" class="hidden absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-48 overflow-y-auto"></div>
+                <p id="profilStasiunPreview" class="hidden text-xs text-slate-400 mt-1 px-1"></p>
+              </div>
+
+              <p id="profilError" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></p>
+
+              <!-- Tombol "Batal" & "Simpan Perubahan" — hanya tampil di MODE EDIT. -->
+              <div id="profilEditActions" class="hidden items-center justify-end gap-2 pt-2">
+                <button type="button" id="btnCancelProfil" onclick="cancelProfilEdit()" class="px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 rounded-2xl transition">Batal</button>
+                <button type="submit" id="btnSaveProfil" class="px-6 py-2.5 bg-[#5B58CA] hover:bg-[#4a47b5] disabled:opacity-60 disabled:cursor-not-allowed active:scale-95 text-white rounded-2xl font-semibold text-sm shadow-md shadow-indigo-200 transition-all duration-200">
+                  <span id="profilSaveLabel">Simpan Perubahan</span>
+                  <i id="profilSaveSpinner" class="fa-solid fa-circle-notch fa-spin hidden ml-1"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= RIGHT WIDGET BAR ================= -->
+    <aside class="w-full md:w-80 bg-white border-l border-slate-100 p-6 flex flex-col justify-start shrink-0">
+      <!-- Tombol Login / Info User Container (Pojok Kanan Atas Widget) -->
+      <div id="loginBtnContainer" class="flex items-center justify-end mb-6">
+        <button 
+          onclick="openLoginModal()" 
+          id="loginBtn" 
+          class="w-full flex items-center justify-center gap-2.5 px-5 py-2.5 bg-[#5B58CA] hover:bg-[#4a47b5] active:scale-95 text-white rounded-full font-semibold text-sm shadow-md shadow-indigo-200 transition-all duration-200">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk / Login</span>
+        </button>
+      </div>
+
+      <!-- ===== Widget Kalender + Informasi Akun =====
+           Tampil di menu Dashboard, Serah Terima PDF, dan PDF to A4.
+           Digantikan oleh widget "PDF Tersimpan" HANYA di menu IMO
+           (sub-menu Per Hari & Per Bulan). -->
+      <div id="dashboardRightWidgets" class="hidden flex-col">
+        <!-- Calendar Widget Realtime -->
+        <div class="bg-slate-50/70 p-4 rounded-3xl border border-slate-100 shadow-sm">
+          <!-- Month Header -->
+          <div class="flex items-center justify-between mb-4 px-1">
+            <h3 id="calendarMonthYear" class="font-bold text-slate-700 text-base">-</h3>
+            <div class="flex items-center gap-1">
+              <button onclick="prevMonth()" class="p-1 hover:bg-slate-200 rounded-full transition text-slate-500">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+              </button>
+              <button onclick="nextMonth()" class="p-1 hover:bg-slate-200 rounded-full transition text-slate-500">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Days Header -->
+          <div class="grid grid-cols-7 gap-1 text-center text-xs text-slate-400 font-medium mb-2">
+            <span>Sen</span>
+            <span>Sel</span>
+            <span>Rab</span>
+            <span>Kam</span>
+            <span>Jum</span>
+            <span>Sab</span>
+            <span>Min</span>
+          </div>
+
+          <!-- Dates Grid -->
+          <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs font-semibold">
+            <!-- Rendered via JavaScript -->
+          </div>
+        </div>
+
+        <!-- User Profile Widget (Muncul Di Bawah Kalender Setelah Login) -->
+        <div id="userProfileWidget" class="hidden flex-col gap-3 mt-6 p-5 bg-gradient-to-br from-indigo-50/90 to-slate-50 rounded-3xl border border-indigo-100 shadow-sm transition-all duration-300">
+          <div class="flex items-center justify-between pb-3 border-b border-indigo-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-700 tracking-wider uppercase">Informasi Akun</span>
+            </div>
+            <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">Aktif</span>
+          </div>
+
+          <div class="space-y-2.5 text-xs text-slate-700 pt-1">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-slate-400 font-medium shrink-0">Nama</span>
+              <span id="profileName" class="font-bold text-slate-800 text-right">-</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-slate-400 font-medium shrink-0">NIPP</span>
+              <span id="profileNipp" class="font-bold text-indigo-600 font-mono text-right">-</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-slate-400 font-medium shrink-0">Jabatan</span>
+              <span id="profileJabatan" class="font-semibold text-slate-700 text-right">-</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-slate-400 font-medium shrink-0">Stasiun</span>
+              <span id="profileStasiun" class="font-semibold text-slate-700 text-right">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Belum login: ajakan singkat di bawah kalender. -->
+        <div id="profileLoggedOutHint" class="mt-6 p-5 bg-slate-50/70 rounded-3xl border border-dashed border-slate-200 text-center">
+          <i class="fa-solid fa-user text-slate-300 text-xl mb-2"></i>
+          <p class="text-xs text-slate-400">Login untuk melihat informasi akun Anda.</p>
+        </div>
+      </div>
+
+      <!-- ===== Widget khusus menu IMO (Per Hari & Per Bulan):
+           "DATA STASIUN KEDUDUKAN" / "DATA STASIUN WAKILAN" — muncul
+           otomatis begitu user login, berisi daftar PDF serah terima milik
+           user tersebut, terurut tanggal termuda dulu lalu Dinas Pagi ->
+           Siang -> Malam dalam tanggal yang sama.
+           DIUBAH — dulu bernama statis "PDF Tersimpan" & selalu menampilkan
+           SEMUA baris (Kedudukan + Wakilan tercampur). Sekarang judul & isi
+           listnya mengikuti mode aktif (lihat savedPdfMode/setSavedPdfMode
+           di bawah): "DATA STASIUN KEDUDUKAN" -> hanya baris dengan
+           stasiunTempatWakilan KOSONG (perilaku list lama, sebelum ada
+           fitur Wakilan). "DATA STASIUN WAKILAN" -> hanya baris dengan
+           stasiunTempatWakilan TERISI (PDF yang tersimpan di sub-folder
+           Wakilan di Drive), plus badge nama stasiun wakilannya per kartu.
+           Di sub-menu Per Hari MAUPUN Per Bulan, mode ini otomatis
+           mengikuti tab mode yang dipilih di form masing-masing (dikirim
+           iframe lewat postMessage 'imoModeChanged' — lihat listener
+           'message' di bawah).
+           Tidak tampil di menu Serah Terima PDF / PDF to A4, yang
+           menampilkan widget Kalender & Informasi Akun sebagai
+           gantinya. ===== -->
+      <div id="toolRightWidgets" class="flex-1 min-h-0 flex flex-col">
+        <div id="savedPdfWidget" class="hidden flex-col gap-3 p-5 bg-gradient-to-br from-indigo-50/90 to-slate-50 rounded-3xl border border-indigo-100 shadow-sm transition-all duration-300 flex-1 min-h-0">
+          <div class="flex items-center justify-between pb-3 border-b border-indigo-100 shrink-0">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
+              <span id="savedPdfWidgetTitle" class="text-xs font-bold text-slate-700 tracking-wider uppercase">DATA STASIUN KEDUDUKAN</span>
+            </div>
+            <span id="savedPdfCount" class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">0</span>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <select id="savedPdfFilterBulan" class="flex-1 min-w-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition">
+              <option value="">Semua Bulan</option>
+            </select>
+            <select id="savedPdfFilterTahun" class="w-24 shrink-0 px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition">
+              <option value="">Semua Tahun</option>
+            </select>
+          </div>
+
+          <div id="savedPdfListWrap" class="flex flex-col gap-2 overflow-y-auto pr-1 max-h-[440px]">
+            <div class="text-center py-6 text-xs text-slate-400">Belum ada PDF tersimpan.</div>
+          </div>
+        </div>
+
+        <!-- Belum login: ajakan singkat menggantikan slot widget di atas. -->
+        <div id="savedPdfLoggedOutHint" class="p-5 bg-slate-50/70 rounded-3xl border border-dashed border-slate-200 text-center">
+          <i class="fa-solid fa-file-pdf text-slate-300 text-xl mb-2"></i>
+          <p class="text-xs text-slate-400">Login untuk melihat daftar PDF serah terima yang sudah tersimpan.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ================= POPUP KONFIRMASI HAPUS PDF TERSIMPAN (sidebar dashboard) =================
+       Ganti browser confirm() bawaan khusus untuk tombol hapus (🗑) di widget
+       "PDF Tersimpan" sidebar. Detail item diisi lewat JS ke elemen ber-id
+       hapusSavedPdf* sebelum modal dibuka — lihat wireSavedPdfDeleteButtons(). -->
+  <div id="hapusSavedPdfModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300 text-center" id="hapusSavedPdfModalCard">
+      <div class="w-14 h-14 mx-auto rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl mb-4">
+        <i class="fa-solid fa-trash-can"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-800">Hapus data ini?</h3>
+      <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+        Data PDF tanggal <strong id="hapusSavedPdfTanggal" class="text-slate-700 font-mono">-</strong>
+        (<span id="hapusSavedPdfDinas">-</span>) akan dihapus.
+      </p>
+      <div class="mt-3 flex items-start gap-2 text-left text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
+        <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+        <span>File PDF akan Terhapus Permanen, Data tidak bisa dikembalikan setelah dihapus.</span>
+      </div>
+      <div class="mt-5 flex items-center justify-center gap-2">
+        <button type="button" id="btnBatalHapusSavedPdf" class="px-4 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-700 rounded-2xl transition">Batal</button>
+        <button type="button" id="btnKonfirmasiHapusSavedPdf" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-semibold rounded-2xl text-xs shadow-md shadow-rose-200 transition">
+          <span id="hapusSavedPdfLabel">Ya, Hapus</span>
+          <i id="hapusSavedPdfSpinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CATATAN UPDATE (CHANGELOG) MODAL =================
+       Dibuka lewat tombol "Update : dd/mm/yyyy" di bawah logo sidebar.
+       Isinya dirender dinamis dari array CHANGELOG di <script> — SATU
+       sumber data untuk badge tanggal & isi popup ini (lihat
+       renderChangelogBadge() / renderChangelogModal()). -->
+  <div id="changelogModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="if (event.target === this) closeChangelogModal()">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 md:p-7 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300 max-h-[80vh] flex flex-col" id="changelogModalCard">
+      <div class="flex items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Catatan Update</h3>
+            <p class="text-xs text-slate-400">Riwayat perubahan &amp; fitur baru IMO Tools</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeChangelogModal()" class="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition shrink-0">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="changelogList" class="mt-5 space-y-5 overflow-y-auto pr-1 flex-1 min-h-0">
+        <!-- Diisi dinamis oleh renderChangelogModal() dari array CHANGELOG -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOGIN MODAL (NIPP-first, tersambung ke sheet Pegawai) ================= -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300" id="loginModalCard">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-xl font-bold text-slate-800">Masuk ke IMO Tools</h3>
+          <p class="text-xs text-slate-500 mt-0.5" id="loginModalSubtitle">Masukkan NIPP untuk mencari data pegawai</p>
+        </div>
+        <button onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-full transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="loginError" class="hidden mb-3 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></div>
+
+      <!-- ---- TAHAP 1: CEK NIPP ---- -->
+      <form id="loginStageNipp" onsubmit="handleCekNippSubmit(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
+          <input type="text" id="loginNippInput" inputmode="numeric" placeholder="Contoh: 1094881999" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-mono" />
+        </div>
+        <button type="submit" id="btnCekNipp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
+          LOGIN
+        </button>
+      </form>
+
+      <!-- ---- TAHAP 2A: NIPP DITEMUKAN & SUDAH PUNYA PASSWORD ---- -->
+      <!-- Dibuat <form> supaya tombol Enter di keyboard bisa dipakai untuk
+           login juga, tidak cuma klik mouse/tap — sama seperti pola tahap
+           lain. Field Password di-focus otomatis begitu tahap ini
+           ditampilkan (lihat showLoginStage()). -->
+      <form id="loginStagePassword" onsubmit="handleLoginPasswordSubmit(event)" class="hidden space-y-3.5">
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
+          <p class="text-xs font-bold text-emerald-700 mb-1">Data Pegawai Ditemukan</p>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Nama</span>
+            <span id="foundNama" class="font-bold text-slate-800 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">NIPP</span>
+            <span id="foundNipp" class="font-bold text-indigo-600 font-mono text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Jabatan</span>
+            <span id="foundJabatan" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Stasiun</span>
+            <span id="foundStasiun" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <div class="relative">
+            <input type="password" id="loginPasswordInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('loginPasswordInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <div class="text-right">
+          <button type="button" onclick="goToLupaPasswordFromLogin()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition">Lupa Password?</button>
+        </div>
+        <button type="submit" id="btnLoginPassword" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          LOGIN
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Ganti NIPP
+        </button>
+      </form>
+
+      <!-- ---- TAHAP 2A-BIS: NIPP DITEMUKAN TAPI BELUM PUNYA PASSWORD ----
+           Pegawai lama yang sudah ada di sheet Pegawai tapi belum pernah
+           membuat password di sheet Akun — diarahkan ke alur Lupa Password
+           (OTP WhatsApp) untuk membuat password pertama kalinya, BUKAN
+           form password langsung tanpa verifikasi. -->
+      <div id="loginStageBelumPassword" class="hidden space-y-3.5">
+        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-2">
+          <p class="text-xs font-bold text-emerald-700 mb-1">Data Pegawai Ditemukan</p>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Nama</span>
+            <span id="foundNamaBP" class="font-bold text-slate-800 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">NIPP</span>
+            <span id="foundNippBP" class="font-bold text-indigo-600 font-mono text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Jabatan</span>
+            <span id="foundJabatanBP" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+          <div class="flex items-start justify-between gap-2 text-xs">
+            <span class="text-slate-400 font-medium shrink-0">Stasiun</span>
+            <span id="foundStasiunBP" class="font-semibold text-slate-700 text-right">-</span>
+          </div>
+        </div>
+        <p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2.5">
+          Akun ini belum memiliki password. Silakan buat password lewat verifikasi WhatsApp.
+        </p>
+        <button type="button" id="btnBuatPasswordSekarang" onclick="goToLupaPasswordFromBelumPassword()" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          Buat Password Sekarang
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Ganti NIPP
+        </button>
+      </div>
+
+      <!-- ---- TAHAP 2B: NIPP BELUM TERDAFTAR -> FORM PENDAFTARAN ---- -->
+      <form id="loginStageDaftar" onsubmit="handleDaftarDanLogin(event)" class="hidden space-y-3.5">
+        <p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
+          NIPP belum terdaftar. Silakan melakukan pendaftaran terlebih dahulu.
+        </p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+          <input type="text" id="loginNameInput" placeholder="Contoh: Arjuna Bhimasakti" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
+          <input type="text" id="loginNippReadonly" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 font-mono cursor-not-allowed" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Jabatan</label>
+          <select id="loginJabatanSelect" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition">
+            <option value="" disabled selected>Pilih Jabatan</option>
+            <option value="KS">KS</option>
+            <option value="PPKA">PPKA</option>
+            <option value="PRS">PRS</option>
+            <option value="PLR">PLR</option>
+            <option value="PJL">PJL</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+          <div id="loginJabatanLainnyaField" class="hidden mt-2">
+            <input type="text" id="loginJabatanLainnyaInput" placeholder="Ketik jabatan" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          </div>
+        </div>
+        <div class="relative">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Stasiun</label>
+          <input type="text" id="loginStasiunInput" placeholder="Contoh: Glenmore atau GLM" required autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <div id="loginStasiunSuggest" class="hidden absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-48 overflow-y-auto"></div>
+          <p id="loginStasiunPreview" class="hidden text-xs text-slate-400 mt-1 px-1"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <div class="relative">
+            <input type="password" id="daftarPasswordInput" placeholder="Minimal 4 karakter" required minlength="4" autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('daftarPasswordInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Verifikasi Password</label>
+          <div class="relative">
+            <input type="password" id="daftarKonfirmasiPasswordInput" placeholder="Ulangi Password" required autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('daftarKonfirmasiPasswordInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p id="daftarPasswordMatchHint" class="hidden text-[11px] mt-1 px-1 font-semibold"></p>
+        </div>
+        <button type="submit" id="btnDaftarDanLogin" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200 mt-4">
+          Daftar dan Login
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Ganti NIPP
+        </button>
+      </form>
+
+      <!-- ---- TAHAP LUPA PASSWORD 1: NIPP (readonly) + Nomor WhatsApp ---- -->
+      <form id="loginStageLupaWhatsapp" onsubmit="handleLupaPasswordWhatsappSubmit(event)" class="hidden space-y-3.5">
+        <p class="text-xs text-slate-500">Masukkan nomor WhatsApp yang terdaftar untuk NIPP ini.</p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">NIPP</label>
+          <input type="text" id="lupaNippReadonly" readonly class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-500 font-mono cursor-not-allowed" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor WhatsApp</label>
+          <input type="text" id="lupaWhatsappInput" inputmode="numeric" placeholder="Contoh: 081234567890" required autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition font-mono" />
+        </div>
+        <button type="submit" id="btnKirimOtp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          KIRIM OTP
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Kembali ke Login
+        </button>
+      </form>
+
+      <!-- ---- TAHAP LUPA PASSWORD 2: VERIFIKASI OTP ---- -->
+      <form id="loginStageLupaOtp" onsubmit="handleOtpVerifySubmit(event)" class="hidden space-y-4">
+        <p class="text-xs text-slate-500 text-center">Kode OTP telah dikirim ke WhatsApp Anda.</p>
+        <div class="flex items-center justify-center gap-2" id="otpDigitsWrap">
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="0" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="1" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="2" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="3" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="4" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="5" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <p class="text-center text-xs text-slate-500">Kode berlaku: <span id="otpCountdownText" class="font-semibold text-slate-700 font-mono">05:00</span></p>
+        <button type="submit" id="btnVerifikasiOtp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          VERIFIKASI
+        </button>
+        <button type="button" id="btnKirimUlangOtp" onclick="handleResendOtp()" class="w-full py-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed">
+          Kirim Ulang OTP
+        </button>
+        <button type="button" onclick="backToNippStage()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          ← Kembali ke Login
+        </button>
+      </form>
+
+      <!-- ---- TAHAP LUPA PASSWORD 3: PASSWORD BARU ---- -->
+      <form id="loginStageLupaPasswordBaru" onsubmit="handleSimpanPasswordBaruSubmit(event)" class="hidden space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+          <div class="relative">
+            <input type="password" id="passwordBaruInput" placeholder="Minimal 4 karakter" required minlength="4" autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('passwordBaruInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Verifikasi Password</label>
+          <div class="relative">
+            <input type="password" id="konfirmasiPasswordBaruInput" placeholder="Ulangi Password Baru" required autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('konfirmasiPasswordBaruInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p id="passwordBaruMatchHint" class="hidden text-[11px] mt-1 px-1 font-semibold"></p>
+        </div>
+        <button type="submit" id="btnSimpanPasswordBaru" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          SIMPAN PASSWORD
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION ================= -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 bg-slate-800 text-white text-xs font-medium px-4 py-3 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2">
+    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+    <span id="toastMessage">Pesan Notifikasi</span>
+  </div>
+
+  <!-- ================= LOGIC JAVASCRIPT ================= -->
+  <script>
+    // Data Kursus
+    const coursesData = [
+      {
+        id: 1,
+        title: "IMO",
+        description: "Buat Data IMO disini, Simpan data IMO harian, dan buat seluruhnya diakhir bulan.",
+        bgColor: "bg-white",
+        borderColor: "border-purple-100",
+        accentColor: "bg-indigo-600",
+        bgGradient: "from-blue-50 to-indigo-50",
+        icon: "fa-solid fa-book-open",
+        tab: "imo"
+      },
+      {
+        id: 2,
+        title: "Serah Terima PDF",
+        description: "Download Serah Terima Satu Bulan di Rolink format ZIP, upload beberapa ZIP dari dinasan PPKA/PLR/PRS/PJL, dan jadikan satu dalam format PDF.",
+        bgColor: "bg-purple-50/70",
+        borderColor: "border-purple-200",
+        accentColor: "bg-purple-600",
+        bgGradient: "from-purple-50 to-pink-50",
+        icon: "fa-solid fa-file-pdf",
+        tab: "serah-terima-pdf"
+      },
+      {
+        id: 3,
+        title: "PDF to A4",
+        description: "Rubah serah terima harian PDF dari Rolink jadi satu dalam format JPG/Gambar.",
+        bgColor: "bg-rose-50/60",
+        borderColor: "border-rose-200",
+        accentColor: "bg-rose-500",
+        bgGradient: "from-rose-50 to-orange-50",
+        icon: "fa-solid fa-file-export",
+        tab: "pdf-to-a4"
+      }
+    ];
+
+    // Peta tab menu -> halaman tools (dimuat via iframe, bukan pindah halaman)
+    const tabRoutes = {
+      "imo-per-hari": "imo/index.html",
+      "imo-per-bulan": "imo/per-bulan.html",
+      "serah-terima-pdf": "serah-terima-pdf/index.html",
+      "pdf-to-a4": "pdf-to-a4/index.html"
+    };
+
+    // Judul header per tab
+    const tabTitles = {
+      dashboard: "Tools",
+      "imo-per-hari": "IMO - Per Hari",
+      "imo-per-bulan": "IMO - Per Bulan",
+      "serah-terima-pdf": "Serah Terima PDF",
+      "pdf-to-a4": "PDF to A4",
+      about: "About | Data Backup",
+      profil: "Profil Saya"
+    };
+
+    const LOGIN_STORAGE_KEY = "imoUser";
+    const TAB_STORAGE_KEY = "imoActiveTab";
+
+    // -----------------------------------------------------------------------
+    // CATATAN UPDATE (Changelog) — SATU-SATUNYA sumber data untuk badge
+    // "Update : dd/mm/yyyy" di bawah logo sidebar DAN isi popup "Catatan
+    // Update" (lihat renderChangelogBadge() / renderChangelogModal()).
+    //
+    // CARA PAKAI: setiap kali fitur/perbaikan baru selesai di-deploy ke
+    // website, tambahkan SATU entri baru di PALING ATAS array ini (urutan
+    // wajib terbaru -> terlama). Badge tanggal di sidebar otomatis mengikuti
+    // entri paling atas (CHANGELOG[0]) — tidak perlu mengubah tempat lain.
+    // -----------------------------------------------------------------------
+    const CHANGELOG = [
+      {
+        tanggal: "03/09/2026",
+        items: [
+          "Menu baru \"Profil\" di sidebar (muncul setelah login) — sekarang bisa lihat & ubah Nama, Jabatan, Stasiun. Jika mutasi ke stasiun lain atau salah ketik.",
+          "Menu \"Profil\" memakai mode Lihat/Edit: tekan tombol \"Edit\" dulu sebelum data bisa diubah, NIPP tidak pernah bisa diedit.",
+		  "Sekarang saat Upload Foto Serah Terima Dinasan, dapat juga menggunakan format Serah Terima PDF dari Rolink, dan otomatis terconvert",
+          "Tombol Hapus di Widget PDF TERSIMPAN, sekarang dapat menghapus PDF yang dibuat Per Hari jika terdapat kesalahan.",
+        ],
+      },
+    ];
+
+    // URL Web App Google Apps Script (Code.gs) — sama dengan CONFIG.APPS_SCRIPT_URL
+    // yang dipakai di imo/assets/js/config.js, sheet "Pegawai" yang sama juga
+    // dipakai sebagai database identitas Login (lihat Code.gs).
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUid_U1Qe3Fk0AvXOkbP0r9Tra03nCzRiHb2m8VJb0Dm5TskoF3TPqFtKwqs-K9nQ/exec";
+
+    // Data pegawai hasil "Cek NIPP" yang sedang menunggu konfirmasi LOGIN.
+    let pendingNipp = "";
+    let pendingUser = null;
+
+    // Helper pemanggilan backend Code.gs. Melempar Error jika backend
+    // membalas { ok:false }, supaya pesan errornya bisa ditampilkan ke user.
+    async function callBackend(body) {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message || "Terjadi kesalahan pada server.");
+      return json.data;
+    }
+
+    // ---------------------------------------------------------------------
+    // Widget "PDF Tersimpan" (sidebar kanan) — daftar riwayat PDF serah
+    // terima milik user yang sedang login, dibaca dari sheet SerahTerima
+    // lewat action "cekPdfTersimpan" (sama seperti dipakai imo/imo).
+    // ---------------------------------------------------------------------
+    const DINAS_ORDER = { "Pagi": 0, "Siang": 1, "Malam": 2 };
+    const SAVED_PDF_BULAN_LIST = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+    ];
+
+    // Format tanggal dari backend selalu "dd-mm-yyyy" (lihat formatTanggal_
+    // di Code.gs) — di-parse ke timestamp supaya bisa diurutkan.
+    function parseTanggalDDMMYYYY(str) {
+      const parts = String(str || '').split('-').map(Number);
+      const dd = parts[0] || 1, mm = parts[1] || 1, yyyy = parts[2] || 1970;
+      return new Date(yyyy, mm - 1, dd).getTime();
+    }
+
+    function tanggalParts(str) {
+      const parts = String(str || '').split('-').map(Number);
+      return { dd: parts[0] || 1, mm: parts[1] || 1, yyyy: parts[2] || 1970 };
+    }
+
+    // Urutkan tanggal termuda (paling awal) dulu, lalu dalam tanggal yang
+    // sama dimulai dari Dinas Pagi -> Siang -> Malam.
+    function sortSavedPdfList(list) {
+      return list.slice().sort((a, b) => {
+        const ta = parseTanggalDDMMYYYY(a.tanggal);
+        const tb = parseTanggalDDMMYYYY(b.tanggal);
+        if (ta !== tb) return ta - tb;
+        const da = DINAS_ORDER.hasOwnProperty(a.dinas) ? DINAS_ORDER[a.dinas] : 99;
+        const db = DINAS_ORDER.hasOwnProperty(b.dinas) ? DINAS_ORDER[b.dinas] : 99;
+        return da - db;
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Filter Bulan/Tahun widget "PDF Tersimpan" — murni filter di sisi
+    // client dari data yang sudah dimuat sekali (tidak fetch ulang ke
+    // server tiap kali dropdown berubah).
+    // ---------------------------------------------------------------------
+    let savedPdfAllList = [];
+    let savedPdfCurrentUser = null; // { nipp, ... } — dipakai tombol hapus
+
+    // Mode aktif widget: 'kedudukan' (default) atau 'wakilan'. Menentukan
+    // judul widget ("DATA STASIUN KEDUDUKAN"/"DATA STASIUN WAKILAN") DAN
+    // subset savedPdfAllList yang ditampilkan (lihat applySavedPdfFilter).
+    // Diganti oleh:
+    //  - Listener 'message' (imoModeChanged) saat sub-menu Per Hari ATAU
+    //    Per Bulan aktif dan user ganti tab mode di form (atau form baru
+    //    dimuat).
+    //  - selectTab(), yang selalu reset ke 'kedudukan' dulu setiap masuk
+    //    salah satu sub-menu IMO — nilai sebenarnya segera menyusul lewat
+    //    postMessage begitu iframe-nya siap.
+    let savedPdfMode = 'kedudukan';
+
+    /** Ganti mode widget: perbarui judul, lalu render ulang list dari cache
+     *  yang sudah ada (tidak fetch ulang ke server — hanya re-filter). */
+    function setSavedPdfMode(mode) {
+      savedPdfMode = mode === 'wakilan' ? 'wakilan' : 'kedudukan';
+      const titleEl = document.getElementById('savedPdfWidgetTitle');
+      if (titleEl) {
+        titleEl.textContent = savedPdfMode === 'wakilan' ? 'DATA STASIUN WAKILAN' : 'DATA STASIUN KEDUDUKAN';
+      }
+      applySavedPdfFilter();
+    }
+
+    function populateSavedPdfYearFilter(list) {
+      const sel = document.getElementById('savedPdfFilterTahun');
+      const prevValue = sel.value;
+      const years = Array.from(new Set(list.map((item) => String(tanggalParts(item.tanggal).yyyy))))
+        .sort((a, b) => Number(b) - Number(a));
+      sel.innerHTML = '<option value="">Semua Tahun</option>' +
+        years.map((y) => `<option value="${y}">${y}</option>`).join('');
+      if (years.includes(prevValue)) sel.value = prevValue;
+    }
+
+    function applySavedPdfFilter() {
+      const bulanVal = document.getElementById('savedPdfFilterBulan').value;
+      const tahunVal = document.getElementById('savedPdfFilterTahun').value;
+      const filtered = savedPdfAllList.filter((item) => {
+        // BARU — filter mode: stasiunTempatWakilan TERISI = baris mode
+        // Stasiun Tempat Wakilan, KOSONG = baris mode Stasiun Kedudukan
+        // (lihat SERAH_COLS.STASIUN_WAKILAN & cekPdfTersimpan di Code.gs).
+        const isWakilanItem = !!String(item.stasiunTempatWakilan || '').trim();
+        if (savedPdfMode === 'wakilan' && !isWakilanItem) return false;
+        if (savedPdfMode === 'kedudukan' && isWakilanItem) return false;
+
+        const t = tanggalParts(item.tanggal);
+        if (bulanVal && String(t.mm) !== bulanVal) return false;
+        if (tahunVal && String(t.yyyy) !== tahunVal) return false;
+        return true;
+      });
+      renderSavedPdfList(sortSavedPdfList(filtered));
+    }
+
+    function initSavedPdfFilters() {
+      const selBulan = document.getElementById('savedPdfFilterBulan');
+      selBulan.innerHTML = '<option value="">Semua Bulan</option>' +
+        SAVED_PDF_BULAN_LIST.map((nama, idx) => `<option value="${idx + 1}">${nama}</option>`).join('');
+      selBulan.addEventListener('change', applySavedPdfFilter);
+      document.getElementById('savedPdfFilterTahun').addEventListener('change', applySavedPdfFilter);
+    }
+
+    function renderSavedPdfList(list) {
+      const wrap = document.getElementById('savedPdfListWrap');
+      document.getElementById('savedPdfCount').innerText = list.length;
+
+      if (!list.length) {
+        wrap.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">Belum ada PDF tersimpan.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = list.map((item) => {
+        const isLibur = item.dinas === 'LIBUR';
+        const dinasBadgeClass = isLibur
+          ? 'bg-rose-100 text-rose-600'
+          : 'bg-indigo-100 text-indigo-700';
+        // BARU — badge nama stasiun tempat wakilan, hanya muncul saat mode
+        // widget = 'wakilan' (kartu mode Kedudukan tidak berubah tampilannya
+        // sama sekali dari sebelumnya). Berguna kalau user pernah mewakili
+        // di beberapa stasiun berbeda, supaya tiap kartu tetap bisa dibedakan.
+        const wakilanBadge = savedPdfMode === 'wakilan' && item.stasiunTempatWakilan
+          ? `<span class="text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full shrink-0 truncate max-w-[110px]" title="${escapeAttr_(item.stasiunTempatWakilan)}">${item.stasiunTempatWakilan}</span>`
+          : '';
+        return `
+        <div class="flex items-center justify-between gap-2 bg-white rounded-2xl border border-slate-100 px-3 py-2.5 shadow-sm" data-file-url="${item.fileUrl ? escapeAttr_(item.fileUrl) : ''}">
+          <div class="min-w-0">
+            <p class="text-[11px] font-bold text-slate-700 font-mono truncate">${item.tanggal}</p>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span class="text-[9px] ${dinasBadgeClass} font-bold px-1.5 py-0.5 rounded-full shrink-0">${item.dinas}</span>
+              <span class="text-[10px] text-slate-500 truncate">${item.jenisSerahTerima}</span>
+              ${wakilanBadge}
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${item.fileUrl
+              ? `<a href="${item.fileUrl}" target="_blank" rel="noopener noreferrer" class="text-[10px] font-semibold text-white bg-[#5B58CA] hover:bg-[#4a47b5] px-3 py-1.5 rounded-full transition">Lihat PDF</a>
+                 <button type="button" class="btn-hapus-saved-pdf w-7 h-7 flex items-center justify-center rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 transition" title="Hapus data ini (file di Drive &amp; baris di sheet)" aria-label="Hapus data ini">
+                   <i class="fa-solid fa-trash-can text-[11px]"></i>
+                 </button>`
+              : `<span class="text-[10px] text-slate-300">Tidak ada</span>`}
+          </div>
+        </div>
+      `;
+      }).join('');
+
+      wireSavedPdfDeleteButtons();
+    }
+
+    /** Escape karakter yang bisa merusak atribut HTML (fileUrl ditaruh di
+     *  atribut data-file-url supaya handler klik tombol hapus tahu item
+     *  mana yang dipilih, tanpa perlu simpan index array yang gampang basi
+     *  kalau list-nya difilter ulang). */
+    function escapeAttr_(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+
+    /** Wire tombol hapus (🗑) di tiap kartu widget "PDF Tersimpan" — dipanggil
+     *  ulang tiap kali renderSavedPdfList() (innerHTML diganti total, jadi
+     *  listener lama otomatis ikut hilang bersama elemennya). Klik tombol
+     *  hanya membuka popup konfirmasi custom (bukan langsung hapus) — proses
+     *  hapus sebenarnya baru jalan di confirmHapusSavedPdf() saat user
+     *  menekan "Ya, Hapus" pada popup. */
+    function wireSavedPdfDeleteButtons() {
+      const wrap = document.getElementById('savedPdfListWrap');
+      wrap.querySelectorAll('.btn-hapus-saved-pdf').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          if (!savedPdfCurrentUser || !savedPdfCurrentUser.nipp) return;
+          const card = e.currentTarget.closest('[data-file-url]');
+          const fileUrl = card && card.getAttribute('data-file-url');
+          if (!fileUrl) return;
+          const item = savedPdfAllList.find((it) => it.fileUrl === fileUrl);
+          if (!item) return;
+
+          openHapusSavedPdfModal(item, e.currentTarget);
+        });
+      });
+    }
+
+    // State popup konfirmasi hapus PDF Tersimpan (sidebar) — item yang lagi
+    // menunggu konfirmasi user, plus referensi tombol 🗑 di kartunya (biar
+    // bisa dikembalikan ke kondisi normal kalau user batal/ada error).
+    let pendingHapusSavedPdf = null;
+
+    function openHapusSavedPdfModal(item, btn) {
+      pendingHapusSavedPdf = { item, btn };
+      document.getElementById('hapusSavedPdfTanggal').innerText = item.tanggal;
+      document.getElementById('hapusSavedPdfDinas').innerText = item.dinas;
+
+      const modal = document.getElementById('hapusSavedPdfModal');
+      const card = document.getElementById('hapusSavedPdfModalCard');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeHapusSavedPdfModal() {
+      const modal = document.getElementById('hapusSavedPdfModal');
+      const card = document.getElementById('hapusSavedPdfModalCard');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+      pendingHapusSavedPdf = null;
+      setHapusSavedPdfLoading(false);
+    }
+
+    function setHapusSavedPdfLoading(isLoading) {
+      document.getElementById('btnKonfirmasiHapusSavedPdf').disabled = isLoading;
+      document.getElementById('btnBatalHapusSavedPdf').disabled = isLoading;
+      document.getElementById('hapusSavedPdfLabel').classList.toggle('hidden', isLoading);
+      document.getElementById('hapusSavedPdfSpinner').classList.toggle('hidden', !isLoading);
+    }
+
+    async function confirmHapusSavedPdf() {
+      if (!pendingHapusSavedPdf) return;
+      const { item, btn } = pendingHapusSavedPdf;
+      setHapusSavedPdfLoading(true);
+      try {
+        await callBackend({ action: 'hapusPdfTersimpan', payload: { nipp: savedPdfCurrentUser.nipp, fileUrl: item.fileUrl } });
+        savedPdfAllList = savedPdfAllList.filter((it) => it.fileUrl !== item.fileUrl);
+        populateSavedPdfYearFilter(savedPdfAllList);
+        applySavedPdfFilter();
+        closeHapusSavedPdfModal();
+        showToast('Data berhasil dihapus.');
+      } catch (err) {
+        setHapusSavedPdfLoading(false);
+        closeHapusSavedPdfModal();
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('opacity-50');
+        }
+        showToast('Gagal menghapus data: ' + err.message);
+      }
+    }
+
+    (function wireHapusSavedPdfModal() {
+      const modal = document.getElementById('hapusSavedPdfModal');
+      const btnBatal = document.getElementById('btnBatalHapusSavedPdf');
+      const btnKonfirmasi = document.getElementById('btnKonfirmasiHapusSavedPdf');
+      if (!modal || !btnBatal || !btnKonfirmasi) return;
+
+      btnBatal.addEventListener('click', closeHapusSavedPdfModal);
+      // Klik di area gelap luar kartu = sama seperti Batal (kecuali lagi
+      // proses menghapus, supaya tidak ke-cancel di tengah request).
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal && !btnKonfirmasi.disabled) closeHapusSavedPdfModal();
+      });
+      btnKonfirmasi.addEventListener('click', confirmHapusSavedPdf);
+    })();
+
+    async function loadSavedPdfWidget(user) {
+      if (!user || !user.nipp) return;
+      savedPdfCurrentUser = user;
+
+      document.getElementById('savedPdfLoggedOutHint').classList.add('hidden');
+      const widget = document.getElementById('savedPdfWidget');
+      widget.classList.remove('hidden');
+      widget.classList.add('flex');
+
+      const wrap = document.getElementById('savedPdfListWrap');
+      wrap.innerHTML = `<div class="text-center py-6 text-xs text-slate-400">Memuat…</div>`;
+
+      try {
+        const data = await callBackend({ action: 'cekPdfTersimpan', nipp: user.nipp });
+        savedPdfAllList = (data && data.list) || [];
+        populateSavedPdfYearFilter(savedPdfAllList);
+        applySavedPdfFilter();
+      } catch (err) {
+        wrap.innerHTML = `<div class="text-center py-6 text-xs text-rose-400">Gagal memuat riwayat PDF: ${err.message}</div>`;
+      }
+    }
+
+    // Dipanggil dari luar (mis. iframe imo/imo setelah berhasil simpan PDF
+    // baru) supaya daftar di widget langsung ter-update tanpa perlu reload.
+    window.refreshSavedPdfWidget = function () {
+      try {
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+        if (savedUser && savedUser.nipp) loadSavedPdfWidget(savedUser);
+      } catch (err) { /* abaikan data sesi yang rusak */ }
+    };
+
+    // ---------------------------------------------------------------------
+    // Widget "Tanggal (Kalender) & User Aktif" — HANYA tampil di menu
+    // Dashboard, menggantikan slot "PDF Tersimpan" di menu lain.
+    // ---------------------------------------------------------------------
+    let calendarDate = new Date();
+    let selectedCalendarDay = calendarDate.getDate();
+
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    function renderCalendar() {
+      const year = calendarDate.getFullYear();
+      const month = calendarDate.getMonth();
+
+      document.getElementById('calendarMonthYear').innerText = `${monthNames[month].slice(0, 3)} ${year}`;
+
+      const calendarGrid = document.getElementById('calendarGrid');
+      calendarGrid.innerHTML = '';
+
+      // Hari pertama pada bulan (dimulai dari Senin=0 hingga Minggu=6)
+      const firstDay = new Date(year, month, 1);
+      const startingDayIndex = (firstDay.getDay() + 6) % 7;
+      const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const today = new Date();
+      const isCurrentRealMonth = today.getFullYear() === year && today.getMonth() === month;
+
+      for (let i = 0; i < startingDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'h-8 w-8';
+        calendarGrid.appendChild(emptyCell);
+      }
+
+      for (let day = 1; day <= totalDaysInMonth; day++) {
+        const isToday = isCurrentRealMonth && today.getDate() === day;
+        const isSelected = selectedCalendarDay === day && isCurrentRealMonth;
+
+        let activeClasses = 'text-slate-600 hover:bg-slate-200/60';
+        if (isToday) {
+          activeClasses = 'bg-[#5B58CA] text-white shadow-md font-bold ring-2 ring-indigo-300';
+        } else if (isSelected) {
+          activeClasses = 'bg-indigo-100 text-indigo-700 font-bold';
+        }
+
+        const button = document.createElement('button');
+        button.className = `h-8 w-8 mx-auto flex items-center justify-center rounded-full transition text-xs ${activeClasses}`;
+        button.innerText = day;
+        button.onclick = () => {
+          selectedCalendarDay = day;
+          renderCalendar();
+          showToast(`Tanggal ${day} ${monthNames[month]} ${year} dipilih`);
+        };
+
+        calendarGrid.appendChild(button);
+      }
+    }
+
+    function prevMonth() {
+      calendarDate.setMonth(calendarDate.getMonth() - 1);
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      calendarDate.setMonth(calendarDate.getMonth() + 1);
+      renderCalendar();
+    }
+
+    // Tampilkan/sembunyikan widget Informasi Akun (di bawah kalender) sesuai status login.
+    function applyProfileWidgetUI(user) {
+      const profileWidget = document.getElementById('userProfileWidget');
+      const loggedOutHint = document.getElementById('profileLoggedOutHint');
+
+      if (user) {
+        document.getElementById('profileName').innerText = user.nama || '-';
+        document.getElementById('profileNipp').innerText = user.nipp || '-';
+        document.getElementById('profileJabatan').innerText = user.jabatan || '-';
+        document.getElementById('profileStasiun').innerText = user.stasiun || '-';
+        profileWidget.classList.remove('hidden');
+        profileWidget.classList.add('flex');
+        loggedOutHint.classList.add('hidden');
+      } else {
+        profileWidget.classList.add('hidden');
+        profileWidget.classList.remove('flex');
+        loggedOutHint.classList.remove('hidden');
+      }
+    }
+
+    // Tampilkan hanya salah satu: widget Dashboard (Kalender & Akun) atau
+    // widget menu Tool (PDF Tersimpan), tergantung menu yang sedang aktif.
+    function updateRightWidgetsVisibility(tabId) {
+      const dashboardWidgets = document.getElementById('dashboardRightWidgets');
+      const toolWidgets = document.getElementById('toolRightWidgets');
+
+      // Widget "PDF Tersimpan" HANYA tampil di menu IMO (sub-menu Per Hari
+      // & Per Bulan). Widget "Tanggal (Kalender) & User Aktif" tampil di
+      // menu Dashboard, Serah Terima PDF, dan PDF to A4.
+      const showSavedPdf = isImoGroupTab(tabId);
+      const showDashboardWidgets = !showSavedPdf;
+
+      dashboardWidgets.classList.toggle('hidden', !showDashboardWidgets);
+      dashboardWidgets.classList.toggle('flex', showDashboardWidgets);
+      toolWidgets.classList.toggle('hidden', !showSavedPdf);
+      toolWidgets.classList.toggle('flex', showSavedPdf);
+    }
+
+    // Render Kartu Kursus
+    function renderCourses(courses) {
+      const container = document.getElementById('courseListContainer');
+      container.innerHTML = '';
+
+      if (courses.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300">
+            <p class="text-slate-400 font-medium text-sm">Tidak ada tools yang ditemukan.</p>
+          </div>
+        `;
+        return;
+      }
+
+      courses.forEach(course => {
+        const card = document.createElement('div');
+        card.className = `relative p-6 rounded-3xl border ${course.borderColor} ${course.bgColor} shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col md:flex-row items-center justify-between gap-6`;
+        card.onclick = () => { selectTab(course.tab); };
+
+        card.innerHTML = `
+          <!-- Left Icon Illustration -->
+          <div class="w-full md:w-48 h-32 rounded-2xl bg-gradient-to-br ${course.bgGradient} flex items-center justify-center p-4 relative overflow-hidden shrink-0">
+            <div class="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/40"></div>
+            <div class="absolute -bottom-8 -left-4 w-20 h-20 rounded-full bg-white/30"></div>
+            <div class="relative w-16 h-16 rounded-2xl ${course.accentColor} shadow-lg flex items-center justify-center">
+              <i class="${course.icon} text-white text-2xl"></i>
+            </div>
+          </div>
+
+          <!-- Middle Course Content -->
+          <div class="flex-1 space-y-2 text-left w-full">
+            <h2 class="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition">
+              ${course.title}
+            </h2>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              ${course.description}
+            </p>
+          </div>
+
+          <!-- Right Action Button -->
+          <div class="self-end md:self-center">
+            <button class="w-11 h-11 rounded-full ${course.accentColor} text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition duration-300">
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // Search Logic
+    function handleSearch() {
+      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = coursesData.filter(course => 
+        course.title.toLowerCase().includes(searchVal) || 
+        course.description.toLowerCase().includes(searchVal)
+      );
+      renderCourses(filtered);
+    }
+
+    // Modal Login Logic
+    function openLoginModal() {
+      const modal = document.getElementById('loginModal');
+      const card = document.getElementById('loginModalCard');
+      document.getElementById('loginNippInput').value = '';
+      pendingNipp = '';
+      pendingUser = null;
+      pendingLupaPasswordWhatsapp = '';
+      stopOtpCountdown();
+      stopResendCooldown();
+      showLoginStage('nipp');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeLoginModal() {
+      const modal = document.getElementById('loginModal');
+      const card = document.getElementById('loginModalCard');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+      // Hentikan timer countdown OTP/cooldown resend kalau modal ditutup
+      // di tengah alur Lupa Password (mis. user klik X) supaya tidak
+      // terus jalan sia-sia di background.
+      stopOtpCountdown();
+      stopResendCooldown();
+    }
+
+    // Helper membuat inisial nama
+    function getInitials(name) {
+      if (!name) return 'U';
+      const parts = name.trim().split(' ');
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+
+    // Ambil nama depan saja dari nama lengkap, mis. "Bagus Dwi Sulaksono" -> "Bagus".
+    function getFirstName(fullName) {
+      if (!fullName) return '';
+      return fullName.trim().split(/\s+/)[0];
+    }
+
+    // Perbarui teks sambutan di banner Dashboard.
+    // Jika user sudah login -> "Halo (nama depan), Selamat datang di Dashboard IMO Tools".
+    // Jika belum login -> "Selamat datang di Dashboard IMO Tools" saja.
+    function updateDashboardWelcome(user) {
+      const el = document.getElementById('dashboardWelcomeText');
+      if (!el) return;
+      const firstName = user ? getFirstName(user.nama) : '';
+      el.textContent = firstName
+        ? `Halo ${firstName}, Selamat datang di Dashboard IMO Tools`
+        : 'Selamat datang di Dashboard IMO Tools';
+    }
+
+    // Terapkan data user ke UI (widget profil + badge pojok kanan atas).
+    // Dipakai baik saat login baru maupun saat memulihkan sesi dari localStorage,
+    // sehingga status login tetap tampil konsisten di semua menu (dashboard & 3 tool).
+    // BARU — setelah login (atau pendaftaran) berhasil, jika sub-menu
+    // "IMO - Per Hari" / "IMO - Per Bulan" sedang aktif DAN iframe-nya
+    // sudah pernah dimuat sebelumnya (mis. dibuka saat user belum login),
+    // muat ulang iframe tsb secara otomatis. form.js di dalamnya hanya
+    // membaca sesi login SEKALI saat halaman dimuat, jadi tanpa reload ini
+    // isinya akan tetap menganggap user belum login sampai halaman
+    // di-refresh manual. Dipanggil dari handleLoginConfirmed() &
+    // handleDaftarDanLogin() — tidak berpengaruh ke tab lain / iframe yang
+    // belum pernah dimuat (biarkan dimuat normal oleh selectTab()).
+    function refreshToolFrameAfterLogin() {
+      const toolFrame = document.getElementById('toolFrame');
+      if (!toolFrame || !isImoGroupTab(currentToolTabId)) return;
+      if (toolFrame.dataset.loaded !== currentToolTabId) return;
+      try {
+        toolFrame.contentWindow.location.reload();
+      } catch (err) {
+        // Fallback kalau akses contentWindow gagal (seharusnya tidak pernah
+        // terjadi karena same-origin) — muat ulang lewat src.
+        toolFrame.src = tabRoutes[currentToolTabId];
+      }
+    }
+
+    function applyLoggedInUI(user) {
+      loadSavedPdfWidget(user);
+      applyProfileWidgetUI(user);
+      updateDashboardWelcome(user);
+
+      // Menu "Profil" di sidebar hanya muncul setelah login.
+      const navProfil = document.getElementById('nav-profil');
+      if (navProfil) navProfil.classList.remove('hidden');
+
+      // Jika halaman "Profil" sedang aktif (mis. baru saja login lalu langsung
+      // membuka menu ini, atau sesi dipulihkan saat halaman itu tersimpan
+      // sebagai tab terakhir), isi ulang form dengan data user terbaru dan
+      // pastikan kembali ke MODE LIHAT (bukan mode edit).
+      if (document.getElementById('nav-profil') && !document.getElementById('profilView').classList.contains('hidden')) {
+        populateProfilForm(user);
+        setProfilEditMode(false);
+      }
+
+      const initials = getInitials(user.nama);
+      const loginBtnContainer = document.getElementById('loginBtnContainer');
+      loginBtnContainer.innerHTML = `
+        <div class="flex items-center justify-between w-full bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-2.5 shadow-sm">
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-9 h-9 rounded-xl bg-[#5B58CA] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+              ${initials}
+            </div>
+            <div class="truncate">
+              <p class="text-xs font-bold text-slate-800 truncate">${user.nama}</p>
+              <p class="text-[10px] text-indigo-600 font-semibold font-mono truncate">NIPP: ${user.nipp}</p>
+            </div>
+          </div>
+          <button 
+            onclick="handleLogout()" 
+            title="Keluar / Logout"
+            class="p-2 text-rose-500 hover:bg-rose-100/70 active:scale-95 rounded-xl transition shrink-0 ml-1">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    // ---- Tahap 1: Cek NIPP ke sheet Pegawai (via Code.gs action "cekNipp") ----
+    function handleCekNippSubmit(e) {
+      e.preventDefault();
+      handleCekNipp();
+    }
+
+    async function handleCekNipp() {
+      const nipp = document.getElementById('loginNippInput').value.trim();
+      if (!nipp) { showLoginError('NIPP wajib diisi.'); return; }
+
+      setLoginBusy(true);
+      try {
+        const result = await callBackend({ action: 'cekNipp', nipp: nipp });
+        pendingNipp = nipp;
+        // "cekNipp" sudah menambah Counter di backend (lihat doPost di Code.gs)
+        // — sinkronkan widget "Telah Digunakan" sekarang juga, jangan tunggu
+        // polling berikutnya (bisa sampai 10 detik).
+        loadUsageCounter();
+
+        if (result.found) {
+          // NIPP terdaftar -> simpan data pegawai, lalu cabang sesuai
+          // hasPassword (dikirim backend dari cekNipp(), lihat Code.gs).
+          pendingUser = {
+            nama: result.data.nama,
+            nipp: result.data.nipp || nipp,
+            jabatan: result.data.jabatan,
+            stasiun: result.data.stasiun,
+          };
+          if (result.data.hasPassword) {
+            document.getElementById('foundNama').innerText = pendingUser.nama;
+            document.getElementById('foundNipp').innerText = pendingUser.nipp;
+            document.getElementById('foundJabatan').innerText = pendingUser.jabatan;
+            document.getElementById('foundStasiun').innerText = pendingUser.stasiun;
+            document.getElementById('loginPasswordInput').value = '';
+            showLoginStage('password');
+          } else {
+            document.getElementById('foundNamaBP').innerText = pendingUser.nama;
+            document.getElementById('foundNippBP').innerText = pendingUser.nipp;
+            document.getElementById('foundJabatanBP').innerText = pendingUser.jabatan;
+            document.getElementById('foundStasiunBP').innerText = pendingUser.stasiun;
+            showLoginStage('belumPassword');
+          }
+        } else {
+          // NIPP belum terdaftar -> tampilkan form pendaftaran, NIPP sudah terisi otomatis.
+          document.getElementById('loginNippReadonly').value = nipp;
+          document.getElementById('loginNameInput').value = '';
+          setJabatanValue('loginJabatanSelect', 'loginJabatanLainnyaField', 'loginJabatanLainnyaInput', '');
+          document.getElementById('loginStasiunInput').value = '';
+          document.getElementById('loginStasiunPreview').classList.add('hidden');
+          document.getElementById('loginStasiunSuggest').classList.add('hidden');
+          showLoginStage('daftar');
+        }
+      } catch (err) {
+        showLoginError('Gagal memeriksa NIPP: ' + err.message);
+      } finally {
+        setLoginBusy(false);
+      }
+    }
+
+    // ---- Tahap 2A: NIPP ditemukan & sudah punya password -> submit form
+    // (klik tombol LOGIN ATAU tekan Enter, keduanya memicu event 'submit'
+    // yang sama). Validasi NIPP+Password dilakukan di BACKEND (action
+    // "loginDenganPassword"), sesuai wajib "Validasi Login di Backend". ----
+    function handleLoginPasswordSubmit(e) {
+      e.preventDefault();
+      handleLoginPassword();
+    }
+
+    async function handleLoginPassword() {
+      if (!pendingUser) return;
+      const password = document.getElementById('loginPasswordInput').value;
+      if (!password) { showLoginError('Password wajib diisi.'); return; }
+
+      setStageBusy('btnLoginPassword', true, 'Memproses...');
+      try {
+        const data = await callBackend({
+          action: 'loginDenganPassword',
+          payload: { nipp: pendingUser.nipp, password: password },
+        });
+        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+
+        applyLoggedInUI(user);
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        refreshToolFrameAfterLogin();
+        closeLoginModal();
+        showToast(`Selamat datang, ${user.nama}!`);
+        loadUsageCounter(); // "loginDenganPassword" sudah menambah Counter di backend.
+      } catch (err) {
+        // Backend membalas persis "NIPP atau Password tidak sesuai." untuk
+        // kombinasi salah (lihat ERROR HANDLING di spec) — ditampilkan apa
+        // adanya, TANPA reload halaman & TANPA browser alert().
+        showLoginError(err.message);
+      } finally {
+        setStageBusy('btnLoginPassword', false, 'LOGIN');
+      }
+    }
+
+    // Helper generik: ubah teks tombol jadi "Memproses..." + disable saat
+    // busy (mencegah double submit/klik ganda), kembalikan teks semula saat
+    // selesai — dipakai oleh semua form baru (Login Password, Lupa
+    // Password, OTP, Password Baru) supaya perilakunya konsisten dengan
+    // Tahap 1 & 2B yang sudah ada (lihat setLoginBusy()).
+    function setStageBusy(buttonId, busy, textWhenIdle) {
+      const btn = document.getElementById(buttonId);
+      if (!btn) return;
+      btn.disabled = busy;
+      btn.textContent = busy ? 'Memproses...' : textWhenIdle;
+    }
+
+    // Toggle show/hide password (ikon mata 👁) — dipakai semua field password
+    // (Login, Daftar Akun, Password Baru).
+    function togglePasswordVisibility(inputId, btnEl) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const icon = btnEl.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+      } else {
+        input.type = 'password';
+        if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+      }
+    }
+
+    // Pasang realtime match-indicator ("⚠ tidak sama" / "✓ sesuai") antara
+    // 2 field password (Password + Verifikasi Password) — dipakai form
+    // Daftar Akun & Password Baru (Lupa Password). Backend TETAP melakukan
+    // validasi ulang (lihat daftarPegawai/simpanPasswordBaruLupaPassword di
+    // Code.gs) — ini murni bantuan visual di sisi frontend.
+    function wirePasswordMatchHint(passwordId, confirmId, hintId) {
+      const passwordInput = document.getElementById(passwordId);
+      const confirmInput = document.getElementById(confirmId);
+      const hint = document.getElementById(hintId);
+      if (!passwordInput || !confirmInput || !hint) return;
+
+      const update = () => {
+        if (!confirmInput.value) {
+          hint.classList.add('hidden');
+          return;
+        }
+        hint.classList.remove('hidden');
+        if (passwordInput.value === confirmInput.value) {
+          hint.textContent = '✓ Password sesuai';
+          hint.classList.remove('text-rose-600');
+          hint.classList.add('text-emerald-600');
+        } else {
+          hint.textContent = '⚠ Password dan Verifikasi Password tidak sama.';
+          hint.classList.remove('text-emerald-600');
+          hint.classList.add('text-rose-600');
+        }
+      };
+      passwordInput.addEventListener('input', update);
+      confirmInput.addEventListener('input', update);
+    }
+
+    // -----------------------------------------------------------------------
+    // Preview normalisasi Stasiun (live, saat user mengetik) — LOGIKANYA
+    // SAMA PERSIS dengan normalizeStasiun_() di Code.gs (backend), supaya
+    // teks yang ditampilkan di sini benar-benar mencerminkan apa yang nanti
+    // disimpan. Ini murni tampilan (UX) — nilai yang benar-benar disimpan
+    // tetap ditentukan oleh backend, bukan oleh fungsi ini.
+    // -----------------------------------------------------------------------
+    function normalizeStasiunPreview(stasiun) {
+      let cleaned = String(stasiun == null ? '' : stasiun).trim().replace(/\s+/g, ' ');
+      if (!cleaned) return '';
+      const tanpaAwalan = cleaned.replace(/^stasiun\s+/i, '');
+      if (tanpaAwalan) cleaned = tanpaAwalan;
+      return cleaned
+        .toLowerCase()
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
+    // Update satu elemen teks preview berdasarkan isi input-nya saat ini.
+    // Menampilkan "Akan disimpan sebagai: ..." kalau field terisi, atau
+    // menyembunyikannya kalau kosong.
+    function updateStasiunPreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      if (!input || !preview) return;
+
+      const hasil = normalizeStasiunPreview(input.value);
+      if (hasil) {
+        preview.textContent = `Akan disimpan sebagai: ${hasil}`;
+        preview.classList.remove('hidden');
+      } else {
+        preview.classList.add('hidden');
+      }
+    }
+
+    // Pasang listener 'input' di satu field Stasiun supaya preview-nya
+    // ter-update live setiap kali user mengetik.
+    function wireStasiunPreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('input', () => updateStasiunPreview(inputId, previewId));
+      updateStasiunPreview(inputId, previewId);
+    }
+
+    // -----------------------------------------------------------------------
+    // Dropdown Jabatan (form Daftar Akun & menu Profil) — pilihan tetap
+    // KS/PPKA/PRS/PLR/PJL, + "Lainnya" yang membuka input teks manual di
+    // bawahnya. Pola sama seperti dropdown Dinas "Lainnya" di form serah
+    // terima harian (lihat assets/js/form.js).
+    // -----------------------------------------------------------------------
+    const JABATAN_TETAP = ['KS', 'PPKA', 'PRS', 'PLR', 'PJL'];
+
+    function wireJabatanDropdown(selectId, lainnyaFieldId) {
+      const select = document.getElementById(selectId);
+      const lainnyaField = document.getElementById(lainnyaFieldId);
+      if (!select || !lainnyaField) return;
+      select.addEventListener('change', () => {
+        lainnyaField.classList.toggle('hidden', select.value !== 'Lainnya');
+      });
+    }
+
+    // Isi dropdown (+ input manual "Lainnya" kalau perlu) dari sebuah nilai
+    // Jabatan yang tersimpan. Kalau nilainya SUDAH persis salah satu pilihan
+    // tetap, dropdown diarahkan ke situ. Kalau tidak cocok sama sekali (data
+    // lama / jabatan custom), dropdown diarahkan ke "Lainnya" dan nilai
+    // aslinya dipindah ke input manual — supaya data lama tidak pernah
+    // hilang/tertimpa begitu saja.
+    function setJabatanValue(selectId, lainnyaFieldId, lainnyaInputId, value) {
+      const select = document.getElementById(selectId);
+      const lainnyaField = document.getElementById(lainnyaFieldId);
+      const lainnyaInput = document.getElementById(lainnyaInputId);
+      if (!select || !lainnyaField || !lainnyaInput) return;
+
+      const v = String(value || '').trim();
+      if (JABATAN_TETAP.includes(v)) {
+        select.value = v;
+        lainnyaField.classList.add('hidden');
+        lainnyaInput.value = '';
+      } else if (v) {
+        select.value = 'Lainnya';
+        lainnyaField.classList.remove('hidden');
+        lainnyaInput.value = v;
+      } else {
+        select.value = '';
+        lainnyaField.classList.add('hidden');
+        lainnyaInput.value = '';
+      }
+    }
+
+    // Ambil nilai Jabatan final dari dropdown + input manual (kalau
+    // "Lainnya" yang dipilih) — dipakai saat submit form Daftar Akun /
+    // Simpan Profil.
+    function getJabatanValue(selectId, lainnyaInputId) {
+      const select = document.getElementById(selectId);
+      const lainnyaInput = document.getElementById(lainnyaInputId);
+      if (!select) return '';
+      if (select.value === 'Lainnya') return lainnyaInput ? lainnyaInput.value.trim() : '';
+      return select.value;
+    }
+
+    // -----------------------------------------------------------------------
+    // Autocomplete Stasiun — daftar Kode+Nama dibaca dari sheet
+    // "MasterStasiun" lewat action "getDaftarStasiun" (sekali saat halaman
+    // dimuat, di-cache di memori). Pencocokan: nama ATAU kode mengandung
+    // teks yang diketik, tidak peduli besar/kecil huruf — mis. mengetik
+    // "gle" atau "glm" sama-sama menampilkan "Glenmore (GLM)". Field tetap
+    // bisa diisi manual seperti biasa; daftar ini murni bantuan, bukan
+    // paksaan harus pilih dari daftar.
+    // -----------------------------------------------------------------------
+    let daftarStasiunCache = [];
+    // true kalau getDaftarStasiun sudah PERNAH berhasil dimuat minimal
+    // sekali. Dipakai supaya validasi "Stasiun Belum Terdaftar" di bawah
+    // TIDAK ikut menolak pendaftaran hanya gara-gara sheet MasterStasiun
+    // gagal dimuat (mis. jaringan lambat) — kalau daftarnya sendiri belum
+    // berhasil diambil, validasi dilewati (fail-open), bukan fail-closed.
+    let daftarStasiunLoaded = false;
+
+    async function loadDaftarStasiun() {
+      try {
+        const data = await callBackend({ action: 'getDaftarStasiun' });
+        daftarStasiunCache = Array.isArray(data) ? data : [];
+        daftarStasiunLoaded = true;
+      } catch (err) {
+        console.warn('Gagal memuat daftar stasiun:', err.message);
+        daftarStasiunCache = [];
+        daftarStasiunLoaded = false;
+      }
+    }
+
+    function cariSaranStasiun(query) {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return [];
+      return daftarStasiunCache
+        .filter((s) => (s.nama || '').toLowerCase().includes(q) || (s.kode || '').toLowerCase().includes(q))
+        .slice(0, 8);
+    }
+
+    // -----------------------------------------------------------------------
+    // Validasi Stasiun terhadap sheet MasterStasiun. Pencocokan dilakukan
+    // dengan normalisasi YANG SAMA dengan normalizeStasiunPreview() supaya
+    // "stasiun kalisetail", "KALISETAIL", dan "Kalisetail" semuanya dianggap
+    // cocok dengan baris MasterStasiun "Kalisetail" — atau lewat Kode
+    // (mis. mengetik "GLM" tetap dianggap valid kalau ada di MasterStasiun).
+    // Mengembalikan objek stasiun yang cocok (persis dari MasterStasiun)
+    // kalau ketemu, atau null kalau tidak ada.
+    // -----------------------------------------------------------------------
+    function cariStasiunTerdaftar(inputStasiun) {
+      const namaNormInput = normalizeStasiunPreview(inputStasiun);
+      const kodeInput = String(inputStasiun || '').trim().toLowerCase();
+      if (!namaNormInput) return null;
+      return daftarStasiunCache.find((s) => {
+        const namaCocok = normalizeStasiunPreview(s.nama) === namaNormInput;
+        const kodeCocok = s.kode && String(s.kode).trim().toLowerCase() === kodeInput;
+        return namaCocok || kodeCocok;
+      }) || null;
+    }
+
+    // Pastikan daftarStasiunCache sudah berhasil dimuat sebelum divalidasi
+    // (coba muat ulang sekali kalau sebelumnya gagal/belum selesai), lalu
+    // periksa apakah stasiun yang diketik user ada di MasterStasiun.
+    // Mengembalikan '' kalau valid (atau kalau daftar gagal dimuat sama
+    // sekali — fail-open supaya user tidak terkunci gara-gara error jaringan),
+    // atau pesan error kalau stasiun jelas TIDAK ada di daftar.
+    async function validasiStasiunTerdaftar(inputStasiun) {
+      if (!daftarStasiunLoaded) {
+        await loadDaftarStasiun();
+      }
+      if (!daftarStasiunLoaded || !daftarStasiunCache.length) {
+        // Daftar MasterStasiun belum/tidak berhasil dimuat -> jangan
+        // blokir pendaftaran, biarkan backend yang jadi validasi terakhir.
+        return '';
+      }
+      if (!cariStasiunTerdaftar(inputStasiun)) {
+        return 'Stasiun Belum Terdaftar. Ketik sebagian nama/kode untuk melihat saran, lalu pilih salah satu dari daftar.';
+      }
+      return '';
+    }
+
+    function wireStasiunAutocomplete(inputId, suggestId, previewId) {
+      const input = document.getElementById(inputId);
+      const suggestBox = document.getElementById(suggestId);
+      if (!input || !suggestBox) return;
+
+      const renderSuggest = () => {
+        const matches = cariSaranStasiun(input.value);
+        if (!matches.length) {
+          suggestBox.classList.add('hidden');
+          suggestBox.innerHTML = '';
+          return;
+        }
+        suggestBox.innerHTML = matches.map((s) => {
+          const nama = String(s.nama || '').replace(/"/g, '&quot;');
+          const kode = String(s.kode || '').replace(/"/g, '&quot;');
+          return `<button type="button" data-nama="${nama}" class="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between gap-2 border-b border-slate-100 last:border-0">
+            <span class="text-slate-700">${nama}</span>
+            ${kode ? `<span class="text-xs text-slate-400 font-mono">${kode}</span>` : ''}
+          </button>`;
+        }).join('');
+        suggestBox.classList.remove('hidden');
+      };
+
+      input.addEventListener('input', renderSuggest);
+      input.addEventListener('focus', renderSuggest);
+
+      // Klik salah satu saran -> isi field dengan Nama resminya. Pakai
+      // 'mousedown' (bukan 'click') supaya event ini kejadian SEBELUM
+      // 'blur' pada field input, jadi klik tidak keburu batal gara-gara
+      // suggest box keburu disembunyikan oleh blur handler.
+      suggestBox.addEventListener('mousedown', (e) => {
+        const btn = e.target.closest('button[data-nama]');
+        if (!btn) return;
+        e.preventDefault();
+        input.value = btn.getAttribute('data-nama');
+        suggestBox.classList.add('hidden');
+        suggestBox.innerHTML = '';
+        updateStasiunPreview(inputId, previewId);
+      });
+
+      input.addEventListener('blur', () => {
+        setTimeout(() => suggestBox.classList.add('hidden'), 150);
+      });
+    }
+
+    // ---- Tahap 2B: NIPP belum terdaftar -> submit form pendaftaran ----
+    // (via Code.gs action "daftarPegawai", menyimpan ke sheet Pegawai yang sama)
+    async function handleDaftarDanLogin(e) {
+      e.preventDefault();
+
+      const nama = document.getElementById('loginNameInput').value.trim();
+      const jabatan = getJabatanValue('loginJabatanSelect', 'loginJabatanLainnyaInput');
+      const stasiun = document.getElementById('loginStasiunInput').value.trim();
+      const password = document.getElementById('daftarPasswordInput').value;
+      const konfirmasiPassword = document.getElementById('daftarKonfirmasiPasswordInput').value;
+
+      if (!nama || !jabatan || !stasiun || !password || !konfirmasiPassword) {
+        showLoginError('Lengkapi semua kolom pendaftaran terlebih dahulu.');
+        return;
+      }
+      if (password !== konfirmasiPassword) {
+        showLoginError('Password dan Verifikasi Password tidak sama.');
+        return;
+      }
+
+      // Tolak pendaftaran kalau nama Stasiun yang diketik tidak ada di
+      // sheet MasterStasiun (dicocokkan lewat Nama ATAU Kode, lihat
+      // cariStasiunTerdaftar()). Mencegah data Stasiun ngawur/typo masuk
+      // ke sheet Pegawai sejak awal, bukan cuma di-normalize saja.
+      setLoginBusy(true);
+      const pesanErrorStasiun = await validasiStasiunTerdaftar(stasiun);
+      if (pesanErrorStasiun) {
+        showLoginError(pesanErrorStasiun);
+        setLoginBusy(false);
+        return;
+      }
+
+      try {
+        const data = await callBackend({
+          action: 'daftarPegawai',
+          payload: {
+            nama: nama,
+            nipp: pendingNipp,
+            jabatan: jabatan,
+            stasiun: stasiun,
+            password: password,
+            konfirmasiPassword: konfirmasiPassword,
+          },
+        });
+        // Backend mengembalikan nama yang SUDAH dinormalisasi (Title Case) —
+        // pakai persis nilai balikan ini sebagai identitas user aktif.
+        const user = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+
+        applyLoggedInUI(user);
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+        refreshToolFrameAfterLogin();
+        closeLoginModal();
+        showToast(`Pendaftaran berhasil. Selamat datang, ${user.nama}!`);
+        // "daftarPegawai" sudah menambah Counter di backend — sinkronkan
+        // widget sekarang juga.
+        loadUsageCounter();
+      } catch (err) {
+        showLoginError(err.message);
+      } finally {
+        setLoginBusy(false);
+      }
+    }
+
+    function backToNippStage() {
+      stopOtpCountdown();
+      stopResendCooldown();
+      showLoginStage('nipp');
+    }
+
+    // -----------------------------------------------------------------------
+    // FITUR LUPA PASSWORD (NIPP + Nomor WhatsApp -> OTP Fonnte -> Password
+    // Baru). Bisa dimasuki dari 2 tempat: link "Lupa Password?" di Tahap
+    // Password (NIPP sudah punya password, lupa passwordnya), atau tombol
+    // "Buat Password Sekarang" di Tahap Belum Password (pegawai lama yang
+    // belum pernah punya password). Kedua jalur masuk ini SAMA PERSIS mulai
+    // dari Tahap Lupa Password 1 (input Nomor WhatsApp) — bedanya cuma dari
+    // mana pendingUser/pendingNipp berasal (keduanya sudah terisi lebih
+    // dulu lewat handleCekNipp()).
+    // -----------------------------------------------------------------------
+
+    function openLupaPasswordWhatsappStage() {
+      document.getElementById('lupaNippReadonly').value = pendingNipp;
+      document.getElementById('lupaWhatsappInput').value = '';
+      showLoginStage('lupaWhatsapp');
+    }
+
+    function goToLupaPasswordFromLogin() {
+      openLupaPasswordWhatsappStage();
+    }
+
+    function goToLupaPasswordFromBelumPassword() {
+      openLupaPasswordWhatsappStage();
+    }
+
+    // Nomor WhatsApp yang baru saja dikirimi OTP — disimpan di sini supaya
+    // "Kirim Ulang OTP" bisa memakai nomor yang sama tanpa user mengetik
+    // ulang, dan supaya Tahap Password Baru tahu proses ini sudah lewat
+    // verifikasi WhatsApp yang mana.
+    let pendingLupaPasswordWhatsapp = '';
+
+    // ---- Tahap Lupa Password 1: submit Nomor WhatsApp -> minta OTP ----
+    function handleLupaPasswordWhatsappSubmit(e) {
+      e.preventDefault();
+      handleMintaOtp(document.getElementById('lupaWhatsappInput').value.trim());
+    }
+
+    async function handleMintaOtp(whatsapp) {
+      if (!whatsapp) { showLoginError('Nomor WhatsApp wajib diisi.'); return; }
+
+      setStageBusy('btnKirimOtp', true, 'KIRIM OTP');
+      try {
+        await callBackend({
+          action: 'mintaOtpLupaPassword',
+          payload: { nipp: pendingNipp, whatsapp: whatsapp },
+        });
+        pendingLupaPasswordWhatsapp = whatsapp;
+        clearOtpDigits();
+        showLoginStage('lupaOtp');
+        startOtpCountdown(5 * 60);
+        startResendCooldown(60);
+        showToast('Kode OTP telah dikirim ke WhatsApp Anda.');
+      } catch (err) {
+        showLoginError(err.message);
+      } finally {
+        setStageBusy('btnKirimOtp', false, 'KIRIM OTP');
+      }
+    }
+
+    // ---- "Kirim Ulang OTP" (Tahap Verifikasi OTP) — pakai nomor WhatsApp
+    // yang sama dengan permintaan pertama, tanpa user mengetik ulang. ----
+    function handleResendOtp() {
+      const btn = document.getElementById('btnKirimUlangOtp');
+      if (btn && btn.disabled) return; // masih dalam cooldown, abaikan klik.
+      handleMintaOtp(pendingLupaPasswordWhatsapp);
+    }
+
+    // ---- 6 Kotak Input OTP: auto-pindah ke kotak berikutnya, backspace
+    // kembali ke kotak sebelumnya, hanya menerima angka, bisa paste 6
+    // digit sekaligus. ----
+    function getOtpDigitInputs() {
+      return Array.from(document.querySelectorAll('#otpDigitsWrap .otp-digit'));
+    }
+
+    function clearOtpDigits() {
+      getOtpDigitInputs().forEach((input) => { input.value = ''; });
+      const first = document.querySelector('#otpDigitsWrap .otp-digit[data-otp-index="0"]');
+      if (first) setTimeout(() => first.focus(), 0);
+    }
+
+    function collectOtpValue() {
+      return getOtpDigitInputs().map((input) => input.value).join('');
+    }
+
+    function wireOtpDigitsInput() {
+      const inputs = getOtpDigitInputs();
+      inputs.forEach((input, idx) => {
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/\D/g, '').slice(0, 1);
+          if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && idx > 0) {
+            inputs[idx - 1].focus();
+          }
+        });
+        input.addEventListener('paste', (e) => {
+          const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+          if (!pasted) return;
+          e.preventDefault();
+          pasted.slice(0, inputs.length).split('').forEach((digit, i) => {
+            if (inputs[i]) inputs[i].value = digit;
+          });
+          const nextEmpty = inputs.find((inp) => !inp.value) || inputs[inputs.length - 1];
+          nextEmpty.focus();
+        });
+      });
+    }
+
+    // ---- Countdown "Kode berlaku: mm:ss" (masa berlaku OTP, 5 menit) ----
+    let otpCountdownInterval = null;
+
+    function formatMmSs(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function startOtpCountdown(totalSeconds) {
+      stopOtpCountdown();
+      const deadline = Date.now() + totalSeconds * 1000;
+      const el = document.getElementById('otpCountdownText');
+      const tick = () => {
+        const sisaMs = deadline - Date.now();
+        if (sisaMs <= 0) {
+          el.textContent = 'Kode OTP telah kedaluwarsa.';
+          stopOtpCountdown();
+          return;
+        }
+        el.textContent = formatMmSs(Math.ceil(sisaMs / 1000));
+      };
+      tick();
+      otpCountdownInterval = setInterval(tick, 1000);
+    }
+
+    function stopOtpCountdown() {
+      if (otpCountdownInterval) {
+        clearInterval(otpCountdownInterval);
+        otpCountdownInterval = null;
+      }
+    }
+
+    // ---- Cooldown "Kirim Ulang OTP" (jeda 60 detik, cegah spam) — dibatasi
+    // juga di BACKEND (OTP_RESEND_COOLDOWN_SECONDS di Code.gs), ini murni
+    // supaya tombolnya kelihatan nonaktif di UI selama jeda berlangsung. ----
+    let resendCooldownInterval = null;
+
+    function startResendCooldown(totalSeconds) {
+      stopResendCooldown();
+      const btn = document.getElementById('btnKirimUlangOtp');
+      if (!btn) return;
+      const deadline = Date.now() + totalSeconds * 1000;
+      btn.disabled = true;
+      const tick = () => {
+        const sisaDetik = Math.ceil((deadline - Date.now()) / 1000);
+        if (sisaDetik <= 0) {
+          btn.disabled = false;
+          btn.textContent = 'Kirim Ulang OTP';
+          stopResendCooldown();
+          return;
+        }
+        btn.textContent = `Kirim Ulang OTP (${sisaDetik}s)`;
+      };
+      tick();
+      resendCooldownInterval = setInterval(tick, 1000);
+    }
+
+    function stopResendCooldown() {
+      if (resendCooldownInterval) {
+        clearInterval(resendCooldownInterval);
+        resendCooldownInterval = null;
+      }
+      const btn = document.getElementById('btnKirimUlangOtp');
+      if (btn) { btn.disabled = false; btn.textContent = 'Kirim Ulang OTP'; }
+    }
+
+    // ---- Tahap Verifikasi OTP: submit 6 digit -> verifikasi ke backend ----
+    function handleOtpVerifySubmit(e) {
+      e.preventDefault();
+      handleVerifikasiOtp();
+    }
+
+    async function handleVerifikasiOtp() {
+      const otp = collectOtpValue();
+      if (otp.length < 6) { showLoginError('Masukkan 6 digit kode OTP.'); return; }
+
+      setStageBusy('btnVerifikasiOtp', true, 'VERIFIKASI');
+      try {
+        await callBackend({
+          action: 'verifikasiOtpLupaPassword',
+          payload: { nipp: pendingNipp, otp: otp },
+        });
+        stopOtpCountdown();
+        stopResendCooldown();
+        document.getElementById('passwordBaruInput').value = '';
+        document.getElementById('konfirmasiPasswordBaruInput').value = '';
+        showLoginStage('lupaPasswordBaru');
+      } catch (err) {
+        // Cakupan pesan dari backend: "Kode OTP tidak sesuai.", "Kode OTP
+        // telah kedaluwarsa...", atau "Terlalu banyak percobaan...".
+        showLoginError(err.message);
+        clearOtpDigits();
+      } finally {
+        setStageBusy('btnVerifikasiOtp', false, 'VERIFIKASI');
+      }
+    }
+
+    // ---- Tahap Password Baru: submit -> simpan ke sheet Akun, lalu
+    // kembali ke Tahap Password (NIPP sudah terisi, tinggal Login). ----
+    function handleSimpanPasswordBaruSubmit(e) {
+      e.preventDefault();
+      handleSimpanPasswordBaru();
+    }
+
+    async function handleSimpanPasswordBaru() {
+      const password = document.getElementById('passwordBaruInput').value;
+      const konfirmasiPassword = document.getElementById('konfirmasiPasswordBaruInput').value;
+      if (!password || !konfirmasiPassword) { showLoginError('Password dan Konfirmasi Password wajib diisi.'); return; }
+      if (password !== konfirmasiPassword) { showLoginError('Password tidak sama.'); return; }
+
+      setStageBusy('btnSimpanPasswordBaru', true, 'SIMPAN PASSWORD');
+      try {
+        await callBackend({
+          action: 'simpanPasswordBaruLupaPassword',
+          payload: { nipp: pendingNipp, password: password, konfirmasiPassword: konfirmasiPassword },
+        });
+        showToast('Password berhasil diperbarui. Silakan login menggunakan password baru Anda.');
+        document.getElementById('loginPasswordInput').value = '';
+        showLoginStage('password');
+      } catch (err) {
+        showLoginError(err.message);
+      } finally {
+        setStageBusy('btnSimpanPasswordBaru', false, 'SIMPAN PASSWORD');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Menu "Profil" — lihat/ubah Nama, Jabatan, Stasiun milik user yang
+    // sedang login. NIPP hanya ditampilkan (read-only), dipakai backend
+    // sebagai kunci pencarian baris di sheet Pegawai (action "updateProfil").
+    // -----------------------------------------------------------------------
+
+    // Isi form Profil dari data user aktif (localStorage "imoUser").
+    function populateProfilForm(user) {
+      document.getElementById('profilNippInput').value = user && user.nipp ? user.nipp : '';
+      document.getElementById('profilNamaInput').value = user && user.nama ? user.nama : '';
+      setJabatanValue('profilJabatanSelect', 'profilJabatanLainnyaField', 'profilJabatanLainnyaInput', user && user.jabatan ? user.jabatan : '');
+      document.getElementById('profilStasiunInput').value = user && user.stasiun ? user.stasiun : '';
+      document.getElementById('profilError').classList.add('hidden');
+    }
+
+    // Toggle antara MODE LIHAT (field terkunci, tombol "Edit" tampil) dan
+    // MODE EDIT (field Nama/Jabatan/Stasiun bisa diketik, tombol "Batal" +
+    // "Simpan Perubahan" tampil). NIPP selalu tetap terkunci di kedua mode.
+    function setProfilEditMode(isEdit) {
+      document.querySelectorAll('#profilForm .profil-field').forEach((el) => {
+        el.disabled = !isEdit;
+        el.classList.toggle('bg-slate-100', !isEdit);
+        el.classList.toggle('text-slate-500', !isEdit);
+        el.classList.toggle('cursor-not-allowed', !isEdit);
+        el.classList.toggle('bg-slate-50', isEdit);
+        el.classList.toggle('text-slate-800', isEdit);
+      });
+
+      document.getElementById('btnEditProfil').classList.toggle('hidden', isEdit);
+      const editActions = document.getElementById('profilEditActions');
+      editActions.classList.toggle('hidden', !isEdit);
+      editActions.classList.toggle('flex', isEdit);
+
+      document.getElementById('profilSubtitle').textContent = isEdit
+        ? 'Ubah data di bawah ini, lalu simpan perubahan.'
+        : 'Data Nama, Jabatan, dan Stasiun Anda.';
+
+      document.getElementById('profilError').classList.add('hidden');
+
+      if (isEdit) {
+        document.getElementById('profilNamaInput').focus();
+        updateStasiunPreview('profilStasiunInput', 'profilStasiunPreview');
+      } else {
+        document.getElementById('profilStasiunPreview').classList.add('hidden');
+        document.getElementById('profilStasiunSuggest').classList.add('hidden');
+      }
+    }
+
+    // Tombol "Batal" — buang perubahan yang belum disimpan (kembalikan nilai
+    // field ke data user yang sedang login), lalu kembali ke MODE LIHAT.
+    function cancelProfilEdit() {
+      try {
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+        populateProfilForm(savedUser);
+      } catch (err) {
+        populateProfilForm(null);
+      }
+      setProfilEditMode(false);
+    }
+
+    function setProfilBusy(busy) {
+      document.getElementById('btnSaveProfil').disabled = busy;
+      document.getElementById('profilSaveSpinner').classList.toggle('hidden', !busy);
+    }
+
+    function showProfilError(msg) {
+      const el = document.getElementById('profilError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // Simpan perubahan Nama/Jabatan/Stasiun ke sheet Pegawai (dicari
+    // berdasarkan NIPP user yang sedang login), lalu sinkronkan sesi login
+    // (localStorage + badge pojok kanan atas + widget Informasi Akun) supaya
+    // perubahan langsung terlihat di semua menu tanpa perlu login ulang.
+    async function handleSaveProfil(e) {
+      e.preventDefault();
+
+      const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY) || 'null');
+      if (!savedUser || !savedUser.nipp) {
+        showProfilError('Sesi login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+
+      const nama = document.getElementById('profilNamaInput').value.trim();
+      const jabatan = getJabatanValue('profilJabatanSelect', 'profilJabatanLainnyaInput');
+      const stasiun = document.getElementById('profilStasiunInput').value.trim();
+
+      if (!nama || !jabatan || !stasiun) {
+        showProfilError('Lengkapi Nama, Jabatan, dan Stasiun terlebih dahulu.');
+        return;
+      }
+
+      document.getElementById('profilError').classList.add('hidden');
+      setProfilBusy(true);
+      try {
+        const data = await callBackend({
+          action: 'updateProfil',
+          payload: { nipp: savedUser.nipp, nama: nama, jabatan: jabatan, stasiun: stasiun },
+        });
+
+        // Backend mengembalikan nama yang sudah dinormalisasi (Title Case) —
+        // pakai persis nilai balikan ini sebagai identitas user aktif, sama
+        // seperti alur pendaftaran.
+        const updatedUser = { nama: data.nama, nipp: data.nipp, jabatan: data.jabatan, stasiun: data.stasiun };
+
+        sessionStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(updatedUser));
+        applyLoggedInUI(updatedUser);
+        populateProfilForm(updatedUser);
+        setProfilEditMode(false);
+        showToast('Profil berhasil diperbarui.');
+      } catch (err) {
+        showProfilError('Gagal menyimpan profil: ' + err.message);
+      } finally {
+        setProfilBusy(false);
+      }
+    }
+
+    const LOGIN_STAGE_IDS = {
+      nipp: 'loginStageNipp',
+      password: 'loginStagePassword',
+      belumPassword: 'loginStageBelumPassword',
+      daftar: 'loginStageDaftar',
+      lupaWhatsapp: 'loginStageLupaWhatsapp',
+      lupaOtp: 'loginStageLupaOtp',
+      lupaPasswordBaru: 'loginStageLupaPasswordBaru',
+    };
+
+    const LOGIN_STAGE_SUBTITLES = {
+      nipp: 'Masukkan NIPP untuk mencari data pegawai',
+      password: 'Masukkan Password untuk masuk',
+      belumPassword: 'Periksa data pegawai di bawah ini',
+      daftar: 'Lengkapi data untuk mendaftar',
+      lupaWhatsapp: 'Verifikasi Nomor WhatsApp Anda',
+      lupaOtp: 'Masukkan kode OTP yang dikirim ke WhatsApp',
+      lupaPasswordBaru: 'Buat password baru Anda',
+    };
+
+    // Field yang di-auto-focus begitu 1 stage ditampilkan — supaya user
+    // bisa langsung mengetik/menekan Enter tanpa klik dulu. Tombol
+    // "btnBuatPasswordSekarang" dipakai untuk stage 'belumPassword' karena
+    // stage itu tidak punya input teks sama sekali.
+    const LOGIN_STAGE_AUTOFOCUS = {
+      password: 'loginPasswordInput',
+      belumPassword: 'btnBuatPasswordSekarang',
+      lupaWhatsapp: 'lupaWhatsappInput',
+      lupaPasswordBaru: 'passwordBaruInput',
+    };
+
+    function showLoginStage(stage) {
+      Object.keys(LOGIN_STAGE_IDS).forEach((key) => {
+        document.getElementById(LOGIN_STAGE_IDS[key]).classList.toggle('hidden', key !== stage);
+      });
+      document.getElementById('loginModalSubtitle').textContent = LOGIN_STAGE_SUBTITLES[stage] || '';
+      document.getElementById('loginError').classList.add('hidden');
+
+      if (stage === 'lupaOtp') {
+        // Stage OTP: fokuskan kotak digit pertama, bukan lewat map di atas
+        // (elemennya tidak punya id tetap, dicari lewat selector).
+        setTimeout(() => {
+          const first = document.querySelector('#otpDigitsWrap .otp-digit[data-otp-index="0"]');
+          if (first) first.focus();
+        }, 0);
+        return;
+      }
+
+      const focusId = LOGIN_STAGE_AUTOFOCUS[stage];
+      if (focusId) {
+        setTimeout(() => {
+          const el = document.getElementById(focusId);
+          if (el) el.focus();
+        }, 0);
+      }
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('loginError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function setLoginBusy(busy) {
+      setStageBusy('btnCekNipp', busy, 'LOGIN');
+      setStageBusy('btnDaftarDanLogin', busy, 'Daftar dan Login');
+    }
+
+    function handleLogout() {
+      // Sembunyikan menu "Profil" dari sidebar (hanya boleh terlihat saat login).
+      const navProfil = document.getElementById('nav-profil');
+      if (navProfil) navProfil.classList.add('hidden');
+
+      // Kalau menu "Profil" ATAU salah satu sub-menu IMO (Per Hari/Per Bulan
+      // — keduanya butuh login) sedang aktif saat logout, jangan biarkan
+      // halaman kosong tanpa akses — pindahkan ke Dashboard. selectTab()
+      // otomatis menutup sub-menu IMO di sidebar saat pindah ke tab lain,
+      // jadi menu ikut tertutup tanpa perlu logika tambahan.
+      const profilAktif = document.getElementById('profilView') && !document.getElementById('profilView').classList.contains('hidden');
+      if (profilAktif || isImoGroupTab(currentToolTabId)) {
+        selectTab('dashboard');
+      }
+
+      // Sembunyikan widget "PDF Tersimpan", tampilkan lagi ajakan login.
+      const savedPdfWidget = document.getElementById('savedPdfWidget');
+      savedPdfWidget.classList.add('hidden');
+      savedPdfWidget.classList.remove('flex');
+      document.getElementById('savedPdfListWrap').innerHTML =
+        `<div class="text-center py-6 text-xs text-slate-400">Belum ada PDF tersimpan.</div>`;
+      document.getElementById('savedPdfCount').innerText = '0';
+      document.getElementById('savedPdfLoggedOutHint').classList.remove('hidden');
+
+      // Sembunyikan juga widget Informasi Akun di bawah kalender.
+      applyProfileWidgetUI(null);
+      updateDashboardWelcome(null);
+
+      // Kembalikan tombol di pojok kanan atas ke "Masuk / Login"
+      const loginBtnContainer = document.getElementById('loginBtnContainer');
+      loginBtnContainer.innerHTML = `
+        <button 
+          onclick="openLoginModal()" 
+          id="loginBtn" 
+          class="w-full flex items-center justify-center gap-2.5 px-5 py-2.5 bg-[#5B58CA] hover:bg-[#4a47b5] active:scale-95 text-white rounded-full font-semibold text-sm shadow-md shadow-indigo-200 transition-all duration-200">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk / Login</span>
+        </button>
+      `;
+
+      sessionStorage.removeItem(LOGIN_STORAGE_KEY);
+      showToast('Anda telah keluar dari akun.');
+    }
+
+    // Tab Navigation
+    // Dashboard & 3 menu tools tetap berada di satu shell yang sama (sidebar kiri +
+    // panel kanan tidak pernah ikut hilang/reload) — menu tools dimuat ke dalam
+    // #toolFrame, hanya area kontennya saja yang berganti.
+    //
+    // Menu "IMO" punya 2 sub-menu: "imo-per-hari" (default) dan "imo-per-bulan".
+    // Saat salah satu sub-menu aktif, tombol utama "IMO" tetap ter-highlight
+    // dan sub-menu di bawahnya otomatis terbuka.
+    function isImoGroupTab(tabId) {
+      return tabId === 'imo-per-hari' || tabId === 'imo-per-bulan';
+    }
+
+    // BARU — dilacak supaya listener 'message' (imoModeChanged) tahu apakah
+    // sub-menu Per Hari sedang aktif sebelum menerapkan sinyal ganti mode
+    // dari iframe-nya (lihat window.addEventListener('message', ...)).
+    let currentToolTabId = null;
+
+    function selectTab(tabId) {
+      // Kompatibilitas: sesi lama yang tersimpan di localStorage dengan tab "imo"
+      // diarahkan otomatis ke sub-menu default "Per Hari".
+      if (tabId === 'imo') tabId = 'imo-per-hari';
+
+      // Menu "Profil" hanya boleh diakses saat login (mis. tab tersimpan di
+      // localStorage dari sesi yang sudah logout) — jika belum login,
+      // alihkan ke Dashboard saja.
+      if (tabId === 'profil') {
+        let hasSession = false;
+        try {
+          const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+          hasSession = !!(savedUser && savedUser.nipp);
+        } catch (err) { /* abaikan data sesi yang rusak */ }
+        if (!hasSession) tabId = 'dashboard';
+      }
+
+      document.querySelectorAll('.nav-item, .nav-subitem').forEach(btn => {
+        btn.classList.remove('bg-white/20', 'text-white', 'font-semibold', 'shadow-inner', 'backdrop-blur-md', 'bg-white/10');
+        btn.classList.add('text-indigo-100/70', 'font-medium');
+      });
+
+      const activeMainId = isImoGroupTab(tabId) ? 'nav-imo' : `nav-${tabId}`;
+      const activeBtn = document.getElementById(activeMainId);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-white/20', 'text-white', 'font-semibold', 'shadow-inner', 'backdrop-blur-md');
+        activeBtn.classList.remove('text-indigo-100/70', 'font-medium');
+      }
+
+      // Buka/tutup sub-menu IMO + highlight sub-menu yang aktif.
+      const imoSubmenu = document.getElementById('imoSubmenu');
+      const imoChevron = document.getElementById('imoChevron');
+      if (isImoGroupTab(tabId)) {
+        imoSubmenu.classList.remove('hidden');
+        imoSubmenu.classList.add('flex');
+        imoChevron.classList.add('rotate-180');
+
+        const subBtn = document.getElementById(`nav-${tabId}`);
+        if (subBtn) {
+          subBtn.classList.add('bg-white/10', 'text-white', 'font-semibold');
+          subBtn.classList.remove('text-indigo-100/70', 'font-medium');
+        }
+      } else {
+        imoSubmenu.classList.add('hidden');
+        imoSubmenu.classList.remove('flex');
+        imoChevron.classList.remove('rotate-180');
+      }
+
+      const dashboardView = document.getElementById('dashboardView');
+      const toolView = document.getElementById('toolView');
+      const toolFrame = document.getElementById('toolFrame');
+      const aboutView = document.getElementById('aboutView');
+      const profilView = document.getElementById('profilView');
+      const headerActions = document.getElementById('headerActions');
+      const pageTitle = document.getElementById('pageTitle');
+
+      pageTitle.textContent = tabTitles[tabId] || 'Tools';
+      updateRightWidgetsVisibility(tabId);
+
+      // BARU — reset default mode widget "DATA STASIUN KEDUDUKAN/WAKILAN"
+      // setiap kali (baru) masuk salah satu sub-menu IMO. Nilai
+      // sebenarnya akan segera menyusul lewat postMessage 'imoModeChanged'
+      // begitu iframe-nya (Per Hari MAUPUN Per Bulan, keduanya sekarang
+      // punya tab mode sendiri) selesai dimuat/user ganti tab di form.
+      // Tidak dipanggil untuk tab lain supaya tidak mengubah apa pun di
+      // luar 2 sub-menu IMO.
+      currentToolTabId = tabId;
+      if (isImoGroupTab(tabId)) setSavedPdfMode('kedudukan');
+
+      // Sembunyikan semua view dulu, lalu tampilkan yang sesuai tab aktif.
+      dashboardView.classList.add('hidden');
+      toolView.classList.add('hidden');
+      toolView.classList.remove('flex');
+      aboutView.classList.add('hidden');
+      aboutView.classList.remove('flex');
+      profilView.classList.add('hidden');
+      profilView.classList.remove('flex');
+
+      if (tabRoutes[tabId]) {
+        // Tampilkan tool di dalam frame pada shell yang sama.
+        toolView.classList.remove('hidden');
+        toolView.classList.add('flex');
+        headerActions.classList.add('hidden');
+
+        // Muat ulang iframe hanya jika berpindah ke tool yang berbeda.
+        if (toolFrame.dataset.loaded !== tabId) {
+          toolFrame.src = tabRoutes[tabId];
+          toolFrame.dataset.loaded = tabId;
+          // Beri jeda sedikit lalu sinkronkan widget "Telah Digunakan", karena
+          // pembukaan tool inilah yang biasanya menambah counter di backend.
+          setTimeout(loadUsageCounter, 1500);
+        }
+      } else if (tabId === 'about') {
+        aboutView.classList.remove('hidden');
+        aboutView.classList.add('flex');
+        headerActions.classList.add('hidden');
+      } else if (tabId === 'profil') {
+        profilView.classList.remove('hidden');
+        profilView.classList.add('flex');
+        headerActions.classList.add('hidden');
+
+        // Selalu isi ulang form dengan data user AKTIF (bukan cache lama)
+        // dan mulai dari MODE LIHAT setiap kali menu ini dibuka.
+        try {
+          const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+          populateProfilForm(savedUser);
+        } catch (err) {
+          populateProfilForm(null);
+        }
+        setProfilEditMode(false);
+      } else {
+        dashboardView.classList.remove('hidden');
+        headerActions.classList.remove('hidden');
+      }
+
+      sessionStorage.setItem(TAB_STORAGE_KEY, tabId);
+    }
+
+    // Salin nomor WhatsApp developer ke clipboard (dari menu About | Data Backup)
+    function copyWhatsApp() {
+      const number = '0853-2211-2251';
+      navigator.clipboard.writeText(number).then(() => {
+        const icon = document.getElementById('copyWaIcon');
+        icon.classList.remove('fa-regular', 'fa-copy');
+        icon.classList.add('fa-solid', 'fa-check');
+        showToast('Nomor WhatsApp berhasil disalin.');
+        setTimeout(() => {
+          icon.classList.remove('fa-solid', 'fa-check');
+          icon.classList.add('fa-regular', 'fa-copy');
+        }, 1500);
+      }).catch(() => {
+        showToast('Gagal menyalin nomor. Silakan salin manual.');
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Widget "Telah Digunakan" (sidebar kiri bawah) — total pemakaian tools,
+    // diambil dari sheet "Counter" lewat action "getCounter" di Code.gs.
+    // Angka counter-nya sendiri bertambah di sisi backend setiap kali menu/
+    // proses apapun dipakai user (lihat Code.gs — belum diupload).
+    // ---------------------------------------------------------------------
+    // Nilai counter yang sedang tampil di layar (dipakai untuk animasi count-up
+    // dan untuk mendeteksi apakah angka bertambah dibanding polling sebelumnya).
+    let usageCounterCurrent = null;
+    let usageCounterPollTimer = null;
+
+    // Animasikan perubahan angka lama -> angka baru (count-up), lalu beri efek
+    // "pulse" sekilas supaya user langsung sadar counter baru saja bertambah.
+    function animateUsageCounter(fromValue, toValue) {
+      const valueEl = document.getElementById('usageCounterValue');
+      if (!valueEl) return;
+
+      const start = Number.isFinite(fromValue) ? fromValue : toValue;
+      const diff = toValue - start;
+      const duration = diff === 0 ? 0 : Math.min(900, Math.max(300, Math.abs(diff) * 60));
+      const startTime = performance.now();
+
+      function step(now) {
+        const progress = duration === 0 ? 1 : Math.min(1, (now - startTime) / duration);
+        // easeOutCubic biar animasinya halus melambat di akhir.
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + diff * eased);
+        valueEl.innerText = current.toLocaleString('id-ID');
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else if (diff > 0) {
+          // Efek pulse singkat saat counter bertambah.
+          valueEl.classList.add('scale-125', 'text-amber-300');
+          setTimeout(() => {
+            valueEl.classList.remove('scale-125', 'text-amber-300');
+          }, 350);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    async function loadUsageCounter() {
+      const valueEl = document.getElementById('usageCounterValue');
+      const dateEl = document.getElementById('usageCounterDate');
+
+      // Tanggal ini SENGAJA di-fix (bukan tanggal hari ini / new Date()),
+      // karena penghitungan counter di sheet "Counter" sudah berjalan
+      // terhitung sejak web ini mulai dipakai, yaitu 01 September 2026.
+      // Kalau nanti mau reset/mulai hitung ulang dari tanggal lain, cukup
+      // ubah string di bawah ini.
+      const USAGE_COUNTER_SINCE = "01 September 2026";
+      if (dateEl) dateEl.innerText = `per ${USAGE_COUNTER_SINCE}`;
+
+      try {
+        const data = await callBackend({ action: 'getCounter' });
+        const jumlah = Number(data && data.jumlah) || 0;
+        animateUsageCounter(usageCounterCurrent, jumlah);
+        usageCounterCurrent = jumlah;
+      } catch (err) {
+        // Action "getCounter" di Code.gs belum tersedia / gagal diakses.
+        if (usageCounterCurrent === null && valueEl) valueEl.innerText = '-';
+        console.warn('Gagal memuat usage counter:', err.message);
+      }
+    }
+
+    // Polling berkala supaya widget "Telah Digunakan" ter-update real-time
+    // setiap kali counter bertambah di backend (mis. dipakai dari tab/perangkat
+    // lain), tanpa perlu reload halaman.
+    function startUsageCounterPolling(intervalMs = 10000) {
+      if (usageCounterPollTimer) clearInterval(usageCounterPollTimer);
+      usageCounterPollTimer = setInterval(() => {
+        // Jangan polling saat tab browser sedang tidak aktif, hemat request.
+        if (document.visibilityState === 'visible') loadUsageCounter();
+      }, intervalMs);
+    }
+
+    // Saat user kembali ke tab ini, langsung sinkronkan counter (kalau ada
+    // penambahan yang terjadi selama tab tidak aktif / dari perangkat lain).
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') loadUsageCounter();
+    });
+
+    // Jalur tambahan real-time: jika halaman tool di dalam iframe mengirim
+    // window.parent.postMessage({ type: 'usageCounterUpdated' }, '*') setelah
+    // sebuah proses selesai, widget langsung sinkron tanpa menunggu polling.
+    //
+    // BARU — 'imoModeChanged' dikirim oleh imo/imo/index.html (form Per
+    // Hari) MAUPUN imo/imo/per-bulan.html (Per Bulan) setiap kali tab mode
+    // Stasiun Kedudukan/Stasiun Tempat Wakilan diklik (dan sekali otomatis
+    // saat iframe itu pertama kali dimuat). Dipakai untuk menyinkronkan
+    // judul & isi widget sidebar kanan ("DATA STASIUN KEDUDUKAN" / "DATA
+    // STASIUN WAKILAN") — lihat setSavedPdfMode(). Diproses selama salah
+    // satu dari 2 sub-menu IMO yang sedang aktif (isImoGroupTab), supaya
+    // pesan basi dari iframe lama tidak menimpa widget kalau user sudah
+    // keburu pindah ke menu lain di luar grup IMO.
+    window.addEventListener('message', (event) => {
+      if (!event || !event.data) return;
+      if (event.data.type === 'usageCounterUpdated') {
+        loadUsageCounter();
+      } else if (event.data.type === 'imoModeChanged') {
+        if (isImoGroupTab(currentToolTabId)) setSavedPdfMode(event.data.mode);
+      }
+    });
+
+    // Toast Notification Helper
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.innerText = msg;
+
+      toast.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+      }, 3000);
+    }
+
+    // ---------------------------------------------------------------------
+    // Popup "Catatan Update" (Changelog) — badge tanggal di sidebar & isi
+    // popup ini sama-sama dirender dari array CHANGELOG di atas.
+    // ---------------------------------------------------------------------
+
+    // Set teks badge "Update : dd/mm/yyyy" di bawah logo sidebar, mengikuti
+    // entri PALING ATAS (paling baru) di CHANGELOG.
+    function renderChangelogBadge() {
+      const el = document.getElementById('changelogBadgeDate');
+      if (!el) return;
+      el.textContent = (CHANGELOG[0] && CHANGELOG[0].tanggal) || '-';
+    }
+
+    // Render seluruh isi popup: dikelompokkan per tanggal, entri terbaru di
+    // paling atas, ditandai badge "Terbaru".
+    function renderChangelogModal() {
+      const wrap = document.getElementById('changelogList');
+      if (!wrap) return;
+
+      if (!CHANGELOG.length) {
+        wrap.innerHTML = `<p class="text-sm text-slate-400 text-center py-6">Belum ada catatan update.</p>`;
+        return;
+      }
+
+      wrap.innerHTML = CHANGELOG.map((entry, idx) => `
+        <div class="${idx !== CHANGELOG.length - 1 ? 'pb-5 border-b border-slate-100' : ''}">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-xs font-bold text-[#5B58CA] font-mono bg-indigo-50 px-2.5 py-1 rounded-full">${entry.tanggal}</span>
+            ${idx === 0 ? '<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wide">Terbaru</span>' : ''}
+          </div>
+          <ul class="space-y-1.5">
+            ${entry.items.map((item) => `
+              <li class="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-[10px] mt-1.5 shrink-0"></i>
+                <span>${item}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `).join('');
+    }
+
+    function openChangelogModal() {
+      renderChangelogModal();
+      const modal = document.getElementById('changelogModal');
+      const card = document.getElementById('changelogModalCard');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeChangelogModal() {
+      const modal = document.getElementById('changelogModal');
+      const card = document.getElementById('changelogModalCard');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+    }
+
+    // Initial Load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderChangelogBadge();
+      renderCourses(coursesData);
+      renderCalendar();
+      initSavedPdfFilters();
+      loadUsageCounter();
+      startUsageCounterPolling();
+
+      // Live preview normalisasi Stasiun (form pendaftaran & menu Profil).
+      wireStasiunPreview('loginStasiunInput', 'loginStasiunPreview');
+      wireStasiunPreview('profilStasiunInput', 'profilStasiunPreview');
+
+      // Dropdown Jabatan (KS/PPKA/PRS/PLR/PJL/Lainnya) di form pendaftaran & Profil.
+      wireJabatanDropdown('loginJabatanSelect', 'loginJabatanLainnyaField');
+      wireJabatanDropdown('profilJabatanSelect', 'profilJabatanLainnyaField');
+
+      // Autocomplete Stasiun (daftar Kode+Nama dari sheet MasterStasiun).
+      loadDaftarStasiun();
+      wireStasiunAutocomplete('loginStasiunInput', 'loginStasiunSuggest', 'loginStasiunPreview');
+      wireStasiunAutocomplete('profilStasiunInput', 'profilStasiunSuggest', 'profilStasiunPreview');
+
+      // BARU — realtime match-indicator Password/Verifikasi Password (Daftar
+      // Akun & Password Baru Lupa Password), dan wiring 6 kotak input OTP.
+      wirePasswordMatchHint('daftarPasswordInput', 'daftarKonfirmasiPasswordInput', 'daftarPasswordMatchHint');
+      wirePasswordMatchHint('passwordBaruInput', 'konfirmasiPasswordBaruInput', 'passwordBaruMatchHint');
+      wireOtpDigitsInput();
+
+      // Pulihkan sesi login (jika ada) supaya user yang sudah login tetap
+      // terlihat login di semua menu, termasuk setelah refresh halaman.
+      try {
+        const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+        if (savedUser && savedUser.nama) {
+          applyLoggedInUI(savedUser);
+        }
+      } catch (err) { /* abaikan data sesi yang rusak */ }
+
+      // Pulihkan menu terakhir yang aktif.
+      const savedTab = sessionStorage.getItem(TAB_STORAGE_KEY) || 'dashboard';
+      selectTab(savedTab);
+    });
+  </script>
+</body>
+</html>
