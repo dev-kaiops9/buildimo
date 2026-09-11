@@ -403,6 +403,40 @@
             </form>
           </div>
 
+          <!-- ================= KARTU: PENGATURAN AKUN =================
+               BARU — menampilkan Email akun (kalau sudah ada) + 2 tombol
+               "Ubah Email" & "Ubah Password" yang membuka #akunModal.
+               Data (termasuk Email) diisi oleh loadPengaturanAkunInfo()
+               setiap kali menu "Profil" dibuka (lihat selectTab()). -->
+          <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-[#5B58CA] flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-shield-halved text-lg"></i>
+              </div>
+              <div>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-800">Pengaturan Akun</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Email &amp; keamanan akun Anda.</p>
+              </div>
+            </div>
+
+            <div class="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-3 mb-5">
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Email</p>
+                <p id="pengaturanAkunEmailText" class="text-sm font-bold text-slate-800 truncate">Memuat…</p>
+              </div>
+              <i class="fa-solid fa-envelope text-slate-300 text-lg shrink-0"></i>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button type="button" onclick="openUbahEmailModal()" class="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 hover:bg-indigo-100 text-[#5B58CA] rounded-2xl font-semibold text-sm active:scale-95 transition">
+                <i class="fa-solid fa-at"></i> Ubah Email
+              </button>
+              <button type="button" onclick="openUbahPasswordModal()" class="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-semibold text-sm active:scale-95 transition">
+                <i class="fa-solid fa-key"></i> Ubah Password
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
@@ -835,6 +869,136 @@
           <p id="passwordBaruMatchHint" class="hidden text-[11px] mt-1 px-1 font-semibold"></p>
         </div>
         <button type="submit" id="btnSimpanPasswordBaru" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          SIMPAN PASSWORD
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL PENGATURAN AKUN (Ubah Email & Ubah Password) =================
+       BARU. Dibuka dari kartu "Pengaturan Akun" di menu Profil (openUbahEmailModal() /
+       openUbahPasswordModal()). Memakai pola stage yang sama dengan #loginModal
+       (1 modal, beberapa <form>/<div> "stage" yang saling sembunyi-tampil lewat
+       showAkunStage()), termasuk 1 set kotak digit OTP yang dipakai BERGANTIAN oleh
+       alur Ubah Email maupun Ubah Password (lihat akunOtpMode) — karena keduanya
+       tidak pernah tampil bersamaan dalam modal yang sama. -->
+  <div id="akunModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-300" id="akunModalCard">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-xl font-bold text-slate-800" id="akunModalTitle">Pengaturan Akun</h3>
+          <p class="text-xs text-slate-500 mt-0.5" id="akunModalSubtitle"></p>
+        </div>
+        <button type="button" onclick="closeAkunModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-full transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="akunError" class="hidden mb-3 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-2xl px-3 py-2"></div>
+
+      <!-- ---- UBAH EMAIL — LANGKAH 1: Password Saat Ini (spec D1) ---- -->
+      <form id="akunStageEmailPassword" onsubmit="handleAkunVerifikasiPasswordSubmit(event)" class="hidden space-y-3.5">
+        <p class="text-xs text-slate-500">Masukkan Password Anda saat ini untuk melanjutkan.</p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password Saat Ini</label>
+          <div class="relative">
+            <input type="password" id="akunPasswordSaatIniInput" placeholder="Masukkan Password" required autocomplete="current-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('akunPasswordSaatIniInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" id="btnAkunVerifikasiPassword" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          Lanjut
+        </button>
+      </form>
+
+      <!-- ---- UBAH EMAIL — LANGKAH 2: Email Baru (spec D2) ---- -->
+      <form id="akunStageEmailBaru" onsubmit="handleAkunMintaOtpEmailSubmit(event)" class="hidden space-y-3.5">
+        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-2 text-xs">
+          <span class="text-slate-400 font-medium shrink-0">Email Saat Ini</span>
+          <span id="akunEmailSaatIniText" class="font-bold text-slate-700 text-right truncate">-</span>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Email Baru</label>
+          <input type="email" id="akunEmailBaruInput" placeholder="nama@email.com" required autocomplete="email" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <button type="submit" id="btnAkunKirimOtpEmail" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          Kirim OTP
+        </button>
+        <button type="button" onclick="closeAkunModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          Batal
+        </button>
+      </form>
+
+      <!-- ---- UBAH PASSWORD — LANGKAH AWAL (spec E1) ---- -->
+      <form id="akunStagePasswordMulai" onsubmit="handleAkunMintaOtpPasswordSubmit(event)" class="hidden space-y-4">
+        <p class="text-xs text-slate-500 text-center">Kami akan mengirimkan kode verifikasi ke email yang terdaftar pada akun Anda.</p>
+        <div class="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between gap-2 text-xs">
+          <span class="text-slate-400 font-medium shrink-0">Email</span>
+          <span id="akunUbahPasswordEmailMasked" class="font-bold text-slate-700 text-right truncate">-</span>
+        </div>
+        <button type="submit" id="btnAkunKirimOtpPassword" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          Kirim OTP
+        </button>
+      </form>
+
+      <!-- ---- EMAIL BELUM TERDAFTAR (spec J) — hanya muncul dari Ubah Password
+           saat akun belum punya email sama sekali. ---- -->
+      <div id="akunStageEmailBelumTerdaftar" class="hidden space-y-4">
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs text-amber-700 leading-relaxed">
+          Email belum terdaftar pada akun Anda. Silakan tambahkan email terlebih dahulu melalui menu Ubah Email.
+        </div>
+        <button type="button" id="btnAkunKeUbahEmail" onclick="handleAkunKeUbahEmailDariBelumTerdaftar()" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          Ke Ubah Email
+        </button>
+      </div>
+
+      <!-- ---- TAHAP OTP (DIPAKAI BERSAMA Ubah Email & Ubah Password — spec D4/E3) ---- -->
+      <form id="akunStageOtp" onsubmit="handleAkunOtpVerifySubmit(event)" class="hidden space-y-4">
+        <p class="text-xs text-slate-500 text-center">Kode OTP telah dikirim ke:<br><span id="akunOtpEmailMaskedText" class="font-bold text-slate-700">-</span></p>
+        <div class="flex items-center justify-center gap-2" id="akunOtpDigitsWrap">
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="0" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="1" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="2" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="3" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="4" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+          <input type="text" inputmode="numeric" maxlength="1" data-otp-index="5" class="otp-digit w-11 h-12 text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+        </div>
+        <p class="text-center text-xs text-slate-500">Kode berlaku: <span id="akunOtpCountdownText" class="font-semibold text-slate-700 font-mono">05:00</span></p>
+        <button type="submit" id="btnAkunVerifikasiOtp" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
+          VERIFIKASI
+        </button>
+        <button type="button" id="btnAkunKirimUlangOtp" onclick="handleAkunResendOtp()" class="w-full py-2 text-indigo-600 hover:text-indigo-700 font-semibold text-xs transition disabled:opacity-50 disabled:cursor-not-allowed">
+          Kirim Ulang OTP
+        </button>
+        <button type="button" onclick="closeAkunModal()" class="w-full py-2 text-slate-500 hover:text-slate-700 font-semibold text-xs transition">
+          Batal
+        </button>
+      </form>
+
+      <!-- ---- UBAH PASSWORD — Password Baru (spec E4) ---- -->
+      <form id="akunStagePasswordBaru" onsubmit="handleAkunSimpanPasswordBaruSubmit(event)" class="hidden space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+          <div class="relative">
+            <input type="password" id="akunPasswordBaruInput" placeholder="Minimal 8 karakter" required minlength="8" autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('akunPasswordBaruInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password</label>
+          <div class="relative">
+            <input type="password" id="akunKonfirmasiPasswordBaruInput" placeholder="Ulangi Password Baru" required autocomplete="new-password" class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition" />
+            <button type="button" tabindex="-1" onclick="togglePasswordVisibility('akunKonfirmasiPasswordBaruInput', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+          <p id="akunPasswordBaruMatchHint" class="hidden text-[11px] mt-1 px-1 font-semibold"></p>
+        </div>
+        <button type="submit" id="btnAkunSimpanPasswordBaru" class="w-full py-3 bg-[#5B58CA] hover:bg-[#4a47b5] text-white font-semibold rounded-2xl text-sm shadow-md shadow-indigo-200 transition duration-200">
           SIMPAN PASSWORD
         </button>
       </form>
@@ -2328,6 +2492,471 @@
       }
     }
 
+    // =========================================================================
+    // BARU — FITUR PENGATURAN AKUN: UBAH EMAIL & UBAH PASSWORD
+    // =========================================================================
+    // Dibuka dari kartu "Pengaturan Akun" di menu Profil. Memakai #akunModal
+    // (lihat markup-nya tepat setelah #loginModal) dengan pola stage yang
+    // SAMA seperti #loginModal (showAkunStage), dan MEMAKAI ULANG helper
+    // generik yang sudah ada: setStageBusy(), togglePasswordVisibility(),
+    // wirePasswordMatchHint(), showToast() — TIDAK membuat fungsi duplikat.
+    // =========================================================================
+
+    // Cache info akun (Nama/NIPP/Jabatan/Stasiun/Email) milik user yang
+    // sedang login — diisi oleh loadPengaturanAkunInfo(), dipakai baik oleh
+    // kartu "Pengaturan Akun" (menampilkan Email) maupun oleh modal (utk
+    // tahu Email Saat Ini / apakah akun sudah punya email).
+    let pengaturanAkunInfo = null;
+
+    // 'email' | 'password' — menentukan action backend mana yang dipanggil
+    // oleh stage OTP & tombol "Kirim Ulang OTP" yang dipakai bersama.
+    let akunOtpMode = null;
+    // Password yang baru saja diverifikasi benar (D1) — disimpan SEMENTARA
+    // di memori (TIDAK pernah ke localStorage/sessionStorage) supaya bisa
+    // dikirim ulang ke backend saat submit Email Baru (D2) tanpa membuat
+    // user mengetik ulang. Dikosongkan lagi begitu modal ditutup.
+    let akunPendingPassword = '';
+    // Email baru yang sedang diverifikasi OTP-nya — dipakai "Kirim Ulang OTP".
+    let akunPendingEmailBaru = '';
+
+    // Ambil info akun (termasuk Email) dari backend, isi kartu "Pengaturan
+    // Akun". Dipanggil dari selectTab() setiap kali menu "Profil" dibuka.
+    async function loadPengaturanAkunInfo(nipp) {
+      const emailTextEl = document.getElementById('pengaturanAkunEmailText');
+      if (!nipp) {
+        pengaturanAkunInfo = null;
+        if (emailTextEl) emailTextEl.textContent = '-';
+        return;
+      }
+      if (emailTextEl) emailTextEl.textContent = 'Memuat…';
+      try {
+        const data = await callBackend({ action: 'getInfoAkun', payload: { nipp: nipp } });
+        pengaturanAkunInfo = data;
+        if (emailTextEl) emailTextEl.textContent = data.email ? data.email : 'Belum diatur';
+      } catch (err) {
+        pengaturanAkunInfo = null;
+        if (emailTextEl) emailTextEl.textContent = 'Gagal memuat.';
+        console.warn('Gagal memuat info akun:', err.message);
+      }
+    }
+
+    // Mask email di sisi frontend (murni tampilan, mis. "Email Saat Ini"
+    // sebelum OTP dikirim) — LOGIKANYA SAMA PERSIS dengan maskEmail_() di
+    // Code.gs, supaya konsisten dengan masking yang dikirim balik backend
+    // (data.emailMasked) di layar-layar lain.
+    function maskEmailPreview_(email) {
+      const str = String(email || '');
+      const at = str.indexOf('@');
+      if (at <= 0) return str;
+      return str.slice(0, 1) + '****' + str.slice(at);
+    }
+
+    function getAkunUser_() {
+      try {
+        return JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function openAkunModalUI_() {
+      const modal = document.getElementById('akunModal');
+      const card = document.getElementById('akunModalCard');
+      document.getElementById('akunError').classList.add('hidden');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+    }
+
+    function closeAkunModal() {
+      const modal = document.getElementById('akunModal');
+      const card = document.getElementById('akunModalCard');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-100');
+      card.classList.add('scale-95');
+      stopAkunOtpCountdown();
+      stopAkunResendCooldown();
+      // Bersihkan data sensitif sementara begitu modal ditutup (dibatalkan
+      // di tengah jalan ATAU selesai) — jangan tertinggal di memori.
+      akunPendingPassword = '';
+      akunPendingEmailBaru = '';
+      akunOtpMode = null;
+    }
+
+    const AKUN_STAGE_IDS = {
+      emailPassword: 'akunStageEmailPassword',
+      emailBaru: 'akunStageEmailBaru',
+      passwordMulai: 'akunStagePasswordMulai',
+      emailBelumTerdaftar: 'akunStageEmailBelumTerdaftar',
+      otp: 'akunStageOtp',
+      passwordBaru: 'akunStagePasswordBaru',
+    };
+
+    const AKUN_STAGE_AUTOFOCUS = {
+      emailPassword: 'akunPasswordSaatIniInput',
+      emailBaru: 'akunEmailBaruInput',
+      passwordBaru: 'akunPasswordBaruInput',
+    };
+
+    function showAkunStage(stage) {
+      Object.keys(AKUN_STAGE_IDS).forEach((key) => {
+        document.getElementById(AKUN_STAGE_IDS[key]).classList.toggle('hidden', key !== stage);
+      });
+      document.getElementById('akunError').classList.add('hidden');
+
+      if (stage === 'otp') {
+        setTimeout(() => {
+          const first = document.querySelector('#akunOtpDigitsWrap .otp-digit[data-otp-index="0"]');
+          if (first) first.focus();
+        }, 0);
+        return;
+      }
+      const focusId = AKUN_STAGE_AUTOFOCUS[stage];
+      if (focusId) {
+        setTimeout(() => {
+          const el = document.getElementById(focusId);
+          if (el) el.focus();
+        }, 0);
+      }
+    }
+
+    function showAkunError(msg) {
+      const el = document.getElementById('akunError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // ---- Buka modal: Ubah Email (mulai dari verifikasi Password Saat Ini,
+    // spec D1) ----
+    function openUbahEmailModal() {
+      const user = getAkunUser_();
+      if (!user || !user.nipp) { showToast('Sesi login tidak ditemukan. Silakan login ulang.'); return; }
+
+      document.getElementById('akunModalTitle').textContent = 'Ubah Email';
+      document.getElementById('akunModalSubtitle').textContent = 'Verifikasi Password Anda terlebih dahulu';
+      document.getElementById('akunPasswordSaatIniInput').value = '';
+      akunPendingPassword = '';
+      akunPendingEmailBaru = '';
+      showAkunStage('emailPassword');
+      openAkunModalUI_();
+    }
+
+    // ---- Buka modal: Ubah Password (mulai dari kirim OTP ke email aktif,
+    // spec E1) — kalau akun belum punya email, arahkan ke pesan "Email
+    // Belum Terdaftar" (spec J) TANPA memanggil backend dulu (kita sudah
+    // tahu dari pengaturanAkunInfo yang dimuat saat menu Profil dibuka). ----
+    function openUbahPasswordModal() {
+      const user = getAkunUser_();
+      if (!user || !user.nipp) { showToast('Sesi login tidak ditemukan. Silakan login ulang.'); return; }
+
+      document.getElementById('akunModalTitle').textContent = 'Ubah Password';
+      document.getElementById('akunModalSubtitle').textContent = 'Verifikasi email untuk melanjutkan';
+
+      if (!pengaturanAkunInfo || !pengaturanAkunInfo.email) {
+        showAkunStage('emailBelumTerdaftar');
+      } else {
+        document.getElementById('akunUbahPasswordEmailMasked').textContent = maskEmailPreview_(pengaturanAkunInfo.email);
+        showAkunStage('passwordMulai');
+      }
+      openAkunModalUI_();
+    }
+
+    // Dari layar "Email Belum Terdaftar" -> langsung buka alur Ubah Email.
+    function handleAkunKeUbahEmailDariBelumTerdaftar() {
+      openUbahEmailModal();
+    }
+
+    // ---- UBAH EMAIL — Langkah 1: submit Password Saat Ini (D1) ----
+    function handleAkunVerifikasiPasswordSubmit(e) {
+      e.preventDefault();
+      handleAkunVerifikasiPassword();
+    }
+
+    async function handleAkunVerifikasiPassword() {
+      const user = getAkunUser_();
+      const password = document.getElementById('akunPasswordSaatIniInput').value;
+      if (!password) { showAkunError('Password wajib diisi.'); return; }
+
+      setStageBusy('btnAkunVerifikasiPassword', true, 'Lanjut');
+      try {
+        await callBackend({
+          action: 'verifikasiPasswordAkun',
+          payload: { nipp: user.nipp, password: password },
+        });
+        akunPendingPassword = password;
+        document.getElementById('akunEmailSaatIniText').textContent =
+          (pengaturanAkunInfo && pengaturanAkunInfo.email) ? pengaturanAkunInfo.email : 'Belum diatur';
+        document.getElementById('akunEmailBaruInput').value = '';
+        showAkunStage('emailBaru');
+      } catch (err) {
+        showAkunError(err.message);
+      } finally {
+        setStageBusy('btnAkunVerifikasiPassword', false, 'Lanjut');
+      }
+    }
+
+    // ---- UBAH EMAIL — Langkah 2: submit Email Baru -> kirim OTP (D2-D3) ----
+    function handleAkunMintaOtpEmailSubmit(e) {
+      e.preventDefault();
+      handleAkunMintaOtpEmail();
+    }
+
+    async function handleAkunMintaOtpEmail() {
+      const user = getAkunUser_();
+      const emailBaru = document.getElementById('akunEmailBaruInput').value.trim();
+      if (!emailBaru) { showAkunError('Email tidak boleh kosong.'); return; }
+
+      setStageBusy('btnAkunKirimOtpEmail', true, 'Kirim OTP');
+      try {
+        const data = await callBackend({
+          action: 'mintaOtpUbahEmail',
+          payload: { nipp: user.nipp, password: akunPendingPassword, emailBaru: emailBaru },
+        });
+        akunPendingEmailBaru = emailBaru;
+        akunOtpMode = 'email';
+        document.getElementById('akunOtpEmailMaskedText').textContent = data.emailMasked;
+        clearAkunOtpDigits();
+        showAkunStage('otp');
+        startAkunOtpCountdown(data.expiresInSeconds || 5 * 60);
+        startAkunResendCooldown(60);
+        showToast('Kode OTP telah dikirim ke Email baru Anda.');
+      } catch (err) {
+        showAkunError(err.message);
+      } finally {
+        setStageBusy('btnAkunKirimOtpEmail', false, 'Kirim OTP');
+      }
+    }
+
+    // ---- UBAH PASSWORD — Langkah awal: kirim OTP ke email aktif (E1-E2) ----
+    function handleAkunMintaOtpPasswordSubmit(e) {
+      e.preventDefault();
+      handleAkunMintaOtpPassword();
+    }
+
+    async function handleAkunMintaOtpPassword() {
+      const user = getAkunUser_();
+      setStageBusy('btnAkunKirimOtpPassword', true, 'Kirim OTP');
+      try {
+        const data = await callBackend({
+          action: 'mintaOtpUbahPassword',
+          payload: { nipp: user.nipp },
+        });
+        akunOtpMode = 'password';
+        document.getElementById('akunOtpEmailMaskedText').textContent = data.emailMasked;
+        clearAkunOtpDigits();
+        showAkunStage('otp');
+        startAkunOtpCountdown(data.expiresInSeconds || 5 * 60);
+        startAkunResendCooldown(60);
+        showToast('Kode OTP telah dikirim ke Email Anda.');
+      } catch (err) {
+        if (err.message === 'EMAIL_BELUM_TERDAFTAR') {
+          showAkunStage('emailBelumTerdaftar');
+        } else {
+          showAkunError(err.message);
+        }
+      } finally {
+        setStageBusy('btnAkunKirimOtpPassword', false, 'Kirim OTP');
+      }
+    }
+
+    // ---- "Kirim Ulang OTP" (dipakai bersama Ubah Email & Ubah Password) ----
+    function handleAkunResendOtp() {
+      const btn = document.getElementById('btnAkunKirimUlangOtp');
+      if (btn && btn.disabled) return;
+      if (akunOtpMode === 'email') {
+        handleAkunMintaOtpEmail();
+      } else if (akunOtpMode === 'password') {
+        handleAkunMintaOtpPassword();
+      }
+    }
+
+    // ---- 6 Kotak Input OTP (versi #akunModal) — logika SAMA PERSIS dengan
+    // wireOtpDigitsInput()/collectOtpValue()/clearOtpDigits() milik
+    // #loginModal, hanya beda selector wrapper supaya ke-2 modal ini tidak
+    // saling bentrok kalau suatu saat sama-sama ada di DOM. ----
+    function getAkunOtpDigitInputs() {
+      return Array.from(document.querySelectorAll('#akunOtpDigitsWrap .otp-digit'));
+    }
+
+    function clearAkunOtpDigits() {
+      getAkunOtpDigitInputs().forEach((input) => { input.value = ''; });
+      const first = document.querySelector('#akunOtpDigitsWrap .otp-digit[data-otp-index="0"]');
+      if (first) setTimeout(() => first.focus(), 0);
+    }
+
+    function collectAkunOtpValue() {
+      return getAkunOtpDigitInputs().map((input) => input.value).join('');
+    }
+
+    function wireAkunOtpDigitsInput() {
+      const inputs = getAkunOtpDigitInputs();
+      inputs.forEach((input, idx) => {
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/\D/g, '').slice(0, 1);
+          if (input.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+        });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && idx > 0) {
+            inputs[idx - 1].focus();
+          }
+        });
+        input.addEventListener('paste', (e) => {
+          const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+          if (!pasted) return;
+          e.preventDefault();
+          pasted.slice(0, inputs.length).split('').forEach((digit, i) => {
+            if (inputs[i]) inputs[i].value = digit;
+          });
+          const nextEmpty = inputs.find((inp) => !inp.value) || inputs[inputs.length - 1];
+          nextEmpty.focus();
+        });
+      });
+    }
+
+    // ---- Countdown & cooldown (versi #akunModal) — logika sama persis
+    // dengan startOtpCountdown()/startResendCooldown() milik #loginModal. ----
+    let akunOtpCountdownInterval = null;
+
+    function startAkunOtpCountdown(totalSeconds) {
+      stopAkunOtpCountdown();
+      const deadline = Date.now() + totalSeconds * 1000;
+      const el = document.getElementById('akunOtpCountdownText');
+      const tick = () => {
+        const sisaMs = deadline - Date.now();
+        if (sisaMs <= 0) {
+          el.textContent = 'Kode OTP telah kedaluwarsa.';
+          stopAkunOtpCountdown();
+          return;
+        }
+        el.textContent = formatMmSs(Math.ceil(sisaMs / 1000));
+      };
+      tick();
+      akunOtpCountdownInterval = setInterval(tick, 1000);
+    }
+
+    function stopAkunOtpCountdown() {
+      if (akunOtpCountdownInterval) {
+        clearInterval(akunOtpCountdownInterval);
+        akunOtpCountdownInterval = null;
+      }
+    }
+
+    let akunResendCooldownInterval = null;
+
+    function startAkunResendCooldown(totalSeconds) {
+      stopAkunResendCooldown();
+      const btn = document.getElementById('btnAkunKirimUlangOtp');
+      if (!btn) return;
+      const deadline = Date.now() + totalSeconds * 1000;
+      btn.disabled = true;
+      const tick = () => {
+        const sisaDetik = Math.ceil((deadline - Date.now()) / 1000);
+        if (sisaDetik <= 0) {
+          btn.disabled = false;
+          btn.textContent = 'Kirim Ulang OTP';
+          stopAkunResendCooldown();
+          return;
+        }
+        btn.textContent = `Kirim Ulang OTP (${sisaDetik}s)`;
+      };
+      tick();
+      akunResendCooldownInterval = setInterval(tick, 1000);
+    }
+
+    function stopAkunResendCooldown() {
+      if (akunResendCooldownInterval) {
+        clearInterval(akunResendCooldownInterval);
+        akunResendCooldownInterval = null;
+      }
+      const btn = document.getElementById('btnAkunKirimUlangOtp');
+      if (btn) { btn.disabled = false; btn.textContent = 'Kirim Ulang OTP'; }
+    }
+
+    // ---- Tahap OTP: submit -> cabang ke Ubah Email atau Ubah Password
+    // sesuai akunOtpMode (spec D4 / E3) ----
+    function handleAkunOtpVerifySubmit(e) {
+      e.preventDefault();
+      handleAkunVerifikasiOtp();
+    }
+
+    async function handleAkunVerifikasiOtp() {
+      const user = getAkunUser_();
+      const otp = collectAkunOtpValue();
+      if (otp.length < 6) { showAkunError('Masukkan 6 digit kode OTP.'); return; }
+
+      setStageBusy('btnAkunVerifikasiOtp', true, 'VERIFIKASI');
+      try {
+        if (akunOtpMode === 'email') {
+          const data = await callBackend({
+            action: 'verifikasiOtpUbahEmail',
+            payload: { nipp: user.nipp, otp: otp },
+          });
+          stopAkunOtpCountdown();
+          stopAkunResendCooldown();
+          if (pengaturanAkunInfo) pengaturanAkunInfo.email = data.emailBaru;
+          const emailTextEl = document.getElementById('pengaturanAkunEmailText');
+          if (emailTextEl) emailTextEl.textContent = data.emailBaru;
+          closeAkunModal();
+          showToast(`Email berhasil diperbarui. Email akun Anda sekarang: ${data.emailBaru}`);
+        } else if (akunOtpMode === 'password') {
+          await callBackend({
+            action: 'verifikasiOtpUbahPassword',
+            payload: { nipp: user.nipp, otp: otp },
+          });
+          stopAkunOtpCountdown();
+          stopAkunResendCooldown();
+          document.getElementById('akunPasswordBaruInput').value = '';
+          document.getElementById('akunKonfirmasiPasswordBaruInput').value = '';
+          document.getElementById('akunPasswordBaruMatchHint').classList.add('hidden');
+          showAkunStage('passwordBaru');
+        }
+      } catch (err) {
+        // Cakupan pesan dari backend: "Kode OTP tidak sesuai.", "...
+        // kedaluwarsa...", atau "Terlalu banyak percobaan...".
+        showAkunError(err.message);
+        clearAkunOtpDigits();
+      } finally {
+        setStageBusy('btnAkunVerifikasiOtp', false, 'VERIFIKASI');
+      }
+    }
+
+    // ---- UBAH PASSWORD — Password Baru: submit -> simpan (E4-E5) ----
+    function handleAkunSimpanPasswordBaruSubmit(e) {
+      e.preventDefault();
+      handleAkunSimpanPasswordBaru();
+    }
+
+    async function handleAkunSimpanPasswordBaru() {
+      const user = getAkunUser_();
+      const password = document.getElementById('akunPasswordBaruInput').value;
+      const konfirmasiPassword = document.getElementById('akunKonfirmasiPasswordBaruInput').value;
+      if (!password || !konfirmasiPassword) { showAkunError('Password dan Konfirmasi Password wajib diisi.'); return; }
+      if (password.length < 8) { showAkunError('Password minimal 8 karakter.'); return; }
+      if (password !== konfirmasiPassword) { showAkunError('Password tidak sama.'); return; }
+
+      setStageBusy('btnAkunSimpanPasswordBaru', true, 'SIMPAN PASSWORD');
+      try {
+        await callBackend({
+          action: 'simpanPasswordBaruUbahPassword',
+          payload: { nipp: user.nipp, password: password, konfirmasiPassword: konfirmasiPassword },
+        });
+        closeAkunModal();
+        showToast('Password berhasil diperbarui.');
+      } catch (err) {
+        showAkunError(err.message);
+      } finally {
+        setStageBusy('btnAkunSimpanPasswordBaru', false, 'SIMPAN PASSWORD');
+      }
+    }
+
+    // Pasang input digit OTP + indikator kecocokan Password Baru/Konfirmasi
+    // sekali saat halaman dimuat (elemen-elemen ini statis, selalu ada di
+    // DOM sejak awal — tidak perlu dipasang ulang tiap modal dibuka).
+    document.addEventListener('DOMContentLoaded', () => {
+      wireAkunOtpDigitsInput();
+      wirePasswordMatchHint('akunPasswordBaruInput', 'akunKonfirmasiPasswordBaruInput', 'akunPasswordBaruMatchHint');
+    });
+
     const LOGIN_STAGE_IDS = {
       nipp: 'loginStageNipp',
       password: 'loginStagePassword',
@@ -2423,6 +3052,11 @@
       // Sembunyikan juga widget Informasi Akun di bawah kalender.
       applyProfileWidgetUI(null);
       updateDashboardWelcome(null);
+
+      // BARU — bersihkan cache info akun (Email) milik kartu "Pengaturan
+      // Akun" supaya tidak tertinggal/salah ditampilkan untuk user lain
+      // yang login berikutnya di sesi browser yang sama.
+      pengaturanAkunInfo = null;
 
       // Kembalikan tombol di pojok kanan atas ke "Masuk / Login"
       const loginBtnContainer = document.getElementById('loginBtnContainer');
@@ -2563,8 +3197,10 @@
         try {
           const savedUser = JSON.parse(sessionStorage.getItem(LOGIN_STORAGE_KEY));
           populateProfilForm(savedUser);
+          loadPengaturanAkunInfo(savedUser && savedUser.nipp);
         } catch (err) {
           populateProfilForm(null);
+          loadPengaturanAkunInfo(null);
         }
         setProfilEditMode(false);
       } else {
